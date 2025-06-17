@@ -221,8 +221,25 @@ export class KeycloakService {
    */
   async userExistsByEmail(email: string): Promise<boolean> {
     try {
-      const users = await this.searchUsers(email, 1);
-      return users.some(user => user.email === email);
+      const adminToken = await this.getAdminToken();
+      
+      // Recherche directe par email avec exact match
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            email: email,
+            exact: true,
+            max: 1,
+          },
+        }
+      );
+
+      const users: KeycloakUser[] = response.data;
+      return users.length > 0;
     } catch (error) {
       this.logger.error(`Erreur lors de la vérification d'existence par email: ${email}`, error);
       return false;
@@ -234,15 +251,58 @@ export class KeycloakService {
    */
   async userExistsByPhone(phone: string): Promise<boolean> {
     try {
-      // Recherche par téléphone dans les attributs
-      const users = await this.searchUsers(phone, 10);
-      return users.some(user => 
-        user.attributes?.phone && 
-        user.attributes.phone.includes(phone)
+      const adminToken = await this.getAdminToken();
+      
+      // Recherche directe par attribut téléphone
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            q: `phone:${phone}`,
+            max: 1,
+          },
+        }
+      );
+
+      const users: KeycloakUser[] = response.data;
+      return users.length > 0 && users.some(user => 
+        user.attributes?.phone?.includes(phone)
       );
     } catch (error) {
       this.logger.error(`Erreur lors de la vérification d'existence par téléphone: ${phone}`, error);
       return false;
+    }
+  }
+
+  /**
+   * Rechercher un utilisateur par username (email ou téléphone)
+   */
+  async findUserByUsername(username: string): Promise<KeycloakUser | null> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            username: username,
+            exact: true,
+            max: 1,
+          },
+        }
+      );
+
+      const users: KeycloakUser[] = response.data;
+      return users.length > 0 ? users[0] : null;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la recherche par username: ${username}`, error);
+      return null;
     }
   }
 
