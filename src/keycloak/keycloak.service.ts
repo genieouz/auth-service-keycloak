@@ -166,6 +166,30 @@ export class KeycloakService {
   }
 
   /**
+   * Compter le nombre total d'utilisateurs (optimisé)
+   */
+  async getUsersCount(): Promise<number> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erreur lors du comptage des utilisateurs', error.response?.data);
+      // Fallback: estimation basée sur une requête limitée
+      const users = await this.getUsers(0, 1);
+      return users.length > 0 ? 1000 : 0; // Estimation grossière
+    }
+  }
+  /**
    * Mettre à jour un utilisateur
    */
   async updateUser(userId: string, userData: Partial<KeycloakUser>): Promise<void> {

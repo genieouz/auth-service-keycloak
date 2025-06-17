@@ -26,14 +26,10 @@ export class AuthService {
     }
 
     try {
-      // Vérifier si l'utilisateur existe déjà dans Keycloak
-      const users = await this.keycloakService.getUsers();
-      const existingUser = users.find(user => 
-        user.email === email || 
-        (user.attributes?.phone && user.attributes.phone.includes(phone))
-      );
-
-      if (existingUser) {
+      // Vérifier si l'utilisateur existe déjà dans Keycloak (optimisé)
+      const userExists = await this.keycloakService.userExists(email, phone);
+      
+      if (userExists) {
         throw new ConflictException('Un utilisateur avec cet email ou téléphone existe déjà');
       }
 
