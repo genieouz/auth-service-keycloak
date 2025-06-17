@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { NotificationService } from '../notification/notification.service';
 import { Otp, OtpDocument } from './schemas/otp.schema';
 import { GenerateOtpDto } from './dto/generate-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -11,6 +12,7 @@ export class OtpService {
 
   constructor(
     @InjectModel(Otp.name) private otpModel: Model<OtpDocument>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -23,7 +25,7 @@ export class OtpService {
   /**
    * Créer et stocker un code OTP
    */
-  async generateOtp(generateOtpDto: GenerateOtpDto): Promise<{ code: string; expiresAt: Date }> {
+  async generateOtp(generateOtpDto: GenerateOtpDto): Promise<{ code: string; expiresAt: Date; sent: boolean }> {
     const { email, phone, ...userData } = generateOtpDto;
     
     if (!email && !phone) {
@@ -51,11 +53,29 @@ export class OtpService {
 
     await otp.save();
 
-    this.logger.log(`Code OTP généré pour ${identifier}: ${code}`);
+    this.logger.log(`Code OTP généré pour ${identifier}`);
     
-    // TODO: Intégrer un service d'envoi SMS/Email
-    // En attendant, on retourne le code pour les tests
-    return { code, expiresAt };
+    // Envoyer le code OTP via le service de notification
+    let sent = false;
+    try {
+      if (email) {
+        await this.notificationService.sendOtpEmail(email, code);
+        this.logger.log(`Code OTP envoyé par email à ${email}`);
+        sent = true;
+      } else if (phone) {
+        await this.notificationService.sendOtpSms(phone, code);
+        this.logger.log(`Code OTP envoyé par SMS à ${phone}`);
+        sent = true;
+      }
+    } catch (error) {
+      this.logger.error('Erreur lors de l\'envoi du code OTP', error);
+      // En cas d'erreur d'envoi, on log le code pour les tests en développement
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.warn(`CODE OTP POUR TESTS: ${code}`);
+      }
+    }
+    
+    return { code: process.env.NODE_ENV === 'development' ? code : '******', expiresAt, sent };
   }
 
   /**
