@@ -190,6 +190,91 @@ export class KeycloakService {
     }
   }
   /**
+   * Rechercher des utilisateurs par critères (optimisé)
+   */
+  async searchUsers(search: string, max = 10): Promise<KeycloakUser[]> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            search,
+            max,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erreur lors de la recherche d\'utilisateurs', error.response?.data);
+      return [];
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur existe par email (optimisé)
+   */
+  async userExistsByEmail(email: string): Promise<boolean> {
+    try {
+      const users = await this.searchUsers(email, 1);
+      return users.some(user => user.email === email);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la vérification d'existence par email: ${email}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur existe par téléphone (optimisé)
+   */
+  async userExistsByPhone(phone: string): Promise<boolean> {
+    try {
+      // Recherche par téléphone dans les attributs
+      const users = await this.searchUsers(phone, 10);
+      return users.some(user => 
+        user.attributes?.phone && 
+        user.attributes.phone.includes(phone)
+      );
+    } catch (error) {
+      this.logger.error(`Erreur lors de la vérification d'existence par téléphone: ${phone}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur existe par email ou téléphone (optimisé)
+   */
+  async userExists(email?: string, phone?: string): Promise<boolean> {
+    try {
+      const checks: Promise<boolean>[] = [];
+      
+      if (email) {
+        checks.push(this.userExistsByEmail(email));
+      }
+      
+      if (phone) {
+        checks.push(this.userExistsByPhone(phone));
+      }
+      
+      if (checks.length === 0) {
+        return false;
+      }
+      
+      // Exécuter les vérifications en parallèle
+      const results = await Promise.all(checks);
+      return results.some(exists => exists);
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification d\'existence utilisateur', error);
+      return false;
+    }
+  }
+
+  /**
    * Mettre à jour un utilisateur
    */
   async updateUser(userId: string, userData: Partial<KeycloakUser>): Promise<void> {
