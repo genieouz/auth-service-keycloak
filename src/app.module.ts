@@ -16,8 +16,7 @@ import { KeycloakModule } from './keycloak/keycloak.module';
     
     // Configuration MongoDB
     MongooseModule.forRoot(
-      process.env.MONGODB_URL || 'mongodb+srv://genieouz:74632@cluster0.9z1a3.mongodb.net/senegalservices-auth',
-
+      process.env.MONGODB_URL,
     ),
     
     // Modules de l'application
