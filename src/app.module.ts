@@ -21,8 +21,8 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 
     // Configuration du rate limiting
     ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minute
-      limit: 100, // 100 requêtes par minute
+      ttl: parseInt(process.env.RATE_LIMIT_TTL) || 60000, // 1 minute
+      limit: parseInt(process.env.RATE_LIMIT_MAX) || 100, // 100 requêtes par minute
     }]),
 
     // Configuration MongoDB

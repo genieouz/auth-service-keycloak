@@ -15,6 +15,7 @@ async function bootstrap() {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
+    disableErrorMessages: process.env.NODE_ENV === 'production',
     transformOptions: {
       enableImplicitConversion: true,
     },
@@ -25,6 +26,7 @@ async function bootstrap() {
     origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
+    optionsSuccessStatus: 200,
   });
 
   // Configuration Swagger

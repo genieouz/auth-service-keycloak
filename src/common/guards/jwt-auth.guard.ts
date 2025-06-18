@@ -24,8 +24,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   handleRequest(err: any, user: any, info: any) {
     if (err || !user) {
+      // Log de sécurité pour les tentatives d'accès non autorisées
       const message = err?.message || info?.message || 'Token invalide ou expiré';
-      throw err || new UnauthorizedException(message);
+      console.error('SÉCURITÉ: Tentative d\'accès non autorisée:', {
+        error: err?.message,
+        info: info?.message,
+        timestamp: new Date().toISOString(),
+      });
+      throw err || new UnauthorizedException('Accès non autorisé');
     }
     return user;
   }

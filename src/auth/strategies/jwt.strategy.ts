@@ -33,7 +33,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       },
       algorithms: ['RS256'],
       issuer: `${configService.get('KEYCLOAK_URL')}/realms/${configService.get('KEYCLOAK_REALM')}`,
-      // Pas de validation d'audience stricte pour le moment
+      // Validation d'audience stricte activée
+      audience: ['account', configService.get('KEYCLOAK_USER_CLIENT_ID')],
     };
 
     super(options);
@@ -41,18 +42,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     try {
-      // Log pour debug (à supprimer en production)
-      this.logger.debug('JWT Payload:', {
-        sub: payload.sub,
-        aud: payload.aud,
-        iss: payload.iss,
-        preferred_username: payload.preferred_username,
-        email: payload.email,
-        exp: payload.exp,
-        iat: payload.iat,
-      });
+      // Logs de sécurité (niveau info en production)
+      this.logger.log(`Validation token pour utilisateur: ${payload.preferred_username}`);
 
-      // Vérifier l'audience manuellement
+      // Vérifications de sécurité strictes
+      if (!payload.sub) {
+        throw new UnauthorizedException('Token invalide: subject manquant');
+      }
+
+      if (!payload.iss || !payload.iss.includes(this.configService.get('KEYCLOAK_REALM'))) {
+        throw new UnauthorizedException('Token invalide: issuer incorrect');
+      }
+
+      // Vérifier l'expiration explicitement
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < now) {
+        throw new UnauthorizedException('Token expiré');
+      }
+
+      // Vérifier l'audience strictement
       const validAudiences = ['account', this.configService.get('KEYCLOAK_USER_CLIENT_ID')];
       const tokenAudience = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
       
@@ -61,31 +69,32 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
 
       if (!hasValidAudience) {
-        this.logger.warn(`Token audience invalide. Attendu: ${validAudiences.join(', ')}, Reçu: ${tokenAudience.join(', ')}`);
-        // Pour le moment, on log seulement sans bloquer
-        // throw new UnauthorizedException('Audience du token invalide');
+        this.logger.error(`SÉCURITÉ: Token audience invalide. Attendu: ${validAudiences.join(', ')}, Reçu: ${tokenAudience.join(', ')}`);
+        throw new UnauthorizedException(`Token audience invalide. Attendu: ${validAudiences.join(', ')}`);
       }
 
-      // Le payload contient déjà les informations du token vérifié
-      if (!payload.sub) {
-        throw new UnauthorizedException('Token invalide: subject manquant');
-      }
-
-      // Vérifier si l'utilisateur existe toujours dans Keycloak (optionnel pour les performances)
+      // Vérifier si l'utilisateur existe toujours dans Keycloak
       let user;
       try {
         user = await this.keycloakService.getUserById(payload.sub);
       } catch (error) {
-        // Si l'utilisateur n'existe plus dans Keycloak, on refuse l'accès
-        this.logger.error(`Utilisateur ${payload.sub} non trouvé dans Keycloak`);
+        this.logger.error(`SÉCURITÉ: Utilisateur ${payload.sub} non trouvé dans Keycloak`);
         throw new UnauthorizedException('Utilisateur non trouvé');
       }
       
       if (!user || !user.enabled) {
+        this.logger.error(`SÉCURITÉ: Utilisateur ${payload.sub} désactivé`);
         throw new UnauthorizedException('Utilisateur désactivé ou inexistant');
       }
 
-      this.logger.debug(`Authentification réussie pour l'utilisateur: ${payload.preferred_username}`);
+      // Vérifier que le token n'est pas trop ancien (optionnel)
+      const tokenAge = now - payload.iat;
+      const maxTokenAge = 24 * 60 * 60; // 24 heures
+      if (tokenAge > maxTokenAge) {
+        this.logger.warn(`SÉCURITÉ: Token très ancien pour ${payload.preferred_username} (${Math.floor(tokenAge / 3600)}h)`);
+      }
+
+      this.logger.log(`Authentification réussie pour: ${payload.preferred_username}`);
 
       return {
         userId: payload.sub,
@@ -97,12 +106,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         lastName: user.lastName,
         scope: payload.scope,
         tokenAudience: tokenAudience,
+        // Informations de sécurité
+        tokenIssuedAt: payload.iat,
+        tokenExpiration: payload.exp,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.error('Erreur lors de la validation du token:', error);
+      this.logger.error('SÉCURITÉ: Erreur lors de la validation du token:', error);
       throw new UnauthorizedException('Erreur lors de la validation du token');
     }
   }
