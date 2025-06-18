@@ -85,7 +85,7 @@ export class NotificationService {
       const response = await this.httpClient.post('notifications/email', {
         to: emailData.to,
         subject: emailData.subject,
-        html: emailData.message,
+        html: emailData.message, // format html
       });
 
       this.logger.log(`Email envoyé avec succès vers ${emailData.to}`);
