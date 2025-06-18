@@ -26,25 +26,21 @@ export class AuthService {
     }
 
     try {
-      // Vérifier si l'utilisateur existe déjà dans Keycloak
-      const users = await this.keycloakService.getUsers();
-      const existingUser = users.find(user => 
-        user.email === email || 
-        (user.attributes?.phone && user.attributes.phone.includes(phone))
-      );
-
-      if (existingUser) {
+      // Vérifier si l'utilisateur existe déjà dans Keycloak (optimisé)
+      const userExists = await this.keycloakService.userExists(email, phone);
+      
+      if (userExists) {
         throw new ConflictException('Un utilisateur avec cet email ou téléphone existe déjà');
       }
 
       // Générer et envoyer le code OTP
       const otpResult = await this.otpService.generateOtp(registerDto);
       
-      // TODO: Intégrer service d'envoi SMS/Email
-      this.logger.log(`Code OTP pour inscription: ${otpResult.code}`);
+      const deliveryMethod = email ? 'email' : 'SMS';
+      const deliveryStatus = otpResult.sent ? 'envoyé' : 'généré (erreur d\'envoi)';
       
       return {
-        message: `Code OTP envoyé avec succès ${email ? 'par email' : 'par SMS'}`,
+        message: `Code OTP ${deliveryStatus} par ${deliveryMethod}`,
         expiresAt: otpResult.expiresAt,
       };
     } catch (error) {

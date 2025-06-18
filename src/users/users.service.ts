@@ -36,12 +36,11 @@ export class UsersService {
       const { page = 0, limit = 20 } = query;
       const first = page * limit;
       
-      const users = await this.keycloakService.getUsers(first, limit);
-      
-      // Pour obtenir le nombre total, on fait une requête supplémentaire
-      // Note: Keycloak ne retourne pas directement le count, on estime ici
-      const totalUsers = await this.keycloakService.getUsers(0, 1000); // Max raisonnable
-      const total = totalUsers.length;
+      // Récupérer les utilisateurs et le total en parallèle pour optimiser
+      const [users, total] = await Promise.all([
+        this.keycloakService.getUsers(first, limit),
+        this.keycloakService.getUsersCount()
+      ]);
       
       return {
         users,

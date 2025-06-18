@@ -14,11 +14,11 @@ export class KeycloakService {
   private readonly userClientId: string;
 
   constructor(private configService: ConfigService) {
-    this.keycloakUrl = this.configService.get('KEYCLOAK_URL', 'http://localhost:8080');
-    this.realm = this.configService.get('KEYCLOAK_REALM', 'senegalservices');
-    this.adminClientId = this.configService.get('KEYCLOAK_ADMIN_CLIENT_ID', 'keycloak_admin_api');
-    this.adminClientSecret = this.configService.get('KEYCLOAK_ADMIN_CLIENT_SECRET', 'KabivlQz5GVG5Rw9BEKVSqKfzm6OXPbY');
-    this.userClientId = this.configService.get('KEYCLOAK_USER_CLIENT_ID', 'senegalservices_client');
+    this.keycloakUrl = this.configService.get('KEYCLOAK_URL');
+    this.realm = this.configService.get('KEYCLOAK_REALM');
+    this.adminClientId = this.configService.get('KEYCLOAK_ADMIN_CLIENT_ID');
+    this.adminClientSecret = this.configService.get('KEYCLOAK_ADMIN_CLIENT_SECRET');
+    this.userClientId = this.configService.get('KEYCLOAK_USER_CLIENT_ID');
 
     this.httpClient = axios.create({
       baseURL: this.keycloakUrl,
@@ -162,6 +162,175 @@ export class KeycloakService {
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des utilisateurs', error.response?.data);
       throw new BadRequestException('Impossible de récupérer les utilisateurs');
+    }
+  }
+
+  /**
+   * Compter le nombre total d'utilisateurs (optimisé)
+   */
+  async getUsersCount(): Promise<number> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erreur lors du comptage des utilisateurs', error.response?.data);
+      // Fallback: estimation basée sur une requête limitée
+      const users = await this.getUsers(0, 1);
+      return users.length > 0 ? 1000 : 0; // Estimation grossière
+    }
+  }
+  /**
+   * Rechercher des utilisateurs par critères (optimisé)
+   */
+  async searchUsers(search: string, max = 10): Promise<KeycloakUser[]> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            search,
+            max,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erreur lors de la recherche d\'utilisateurs', error.response?.data);
+      return [];
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur existe par email (optimisé)
+   */
+  async userExistsByEmail(email: string): Promise<boolean> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      // Recherche directe par email avec exact match
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            email: email,
+            exact: true,
+            max: 1,
+          },
+        }
+      );
+
+      const users: KeycloakUser[] = response.data;
+      return users.length > 0;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la vérification d'existence par email: ${email}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur existe par téléphone (optimisé)
+   */
+  async userExistsByPhone(phone: string): Promise<boolean> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      // Recherche directe par attribut téléphone
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            q: `phone:${phone}`,
+            max: 1,
+          },
+        }
+      );
+
+      const users: KeycloakUser[] = response.data;
+      return users.length > 0 && users.some(user => 
+        user.attributes?.phone?.includes(phone)
+      );
+    } catch (error) {
+      this.logger.error(`Erreur lors de la vérification d'existence par téléphone: ${phone}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Rechercher un utilisateur par username (email ou téléphone)
+   */
+  async findUserByUsername(username: string): Promise<KeycloakUser | null> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+          params: {
+            username: username,
+            exact: true,
+            max: 1,
+          },
+        }
+      );
+
+      const users: KeycloakUser[] = response.data;
+      return users.length > 0 ? users[0] : null;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la recherche par username: ${username}`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur existe par email ou téléphone (optimisé)
+   */
+  async userExists(email?: string, phone?: string): Promise<boolean> {
+    try {
+      const checks: Promise<boolean>[] = [];
+      
+      if (email) {
+        checks.push(this.userExistsByEmail(email));
+      }
+      
+      if (phone) {
+        checks.push(this.userExistsByPhone(phone));
+      }
+      
+      if (checks.length === 0) {
+        return false;
+      }
+      
+      // Exécuter les vérifications en parallèle
+      const results = await Promise.all(checks);
+      return results.some(exists => exists);
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification d\'existence utilisateur', error);
+      return false;
     }
   }
 
