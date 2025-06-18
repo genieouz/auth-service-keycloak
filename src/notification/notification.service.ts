@@ -84,7 +84,7 @@ export class NotificationService {
 
       const response = await this.httpClient.post('notifications/email', {
         to: emailData.to,
-        subject: emailData.subject,
+        subject: emailData.subject, // objet du mail
         html: emailData.message, // format html
       });
 
