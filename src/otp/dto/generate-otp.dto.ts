@@ -48,11 +48,12 @@ export class GenerateOtpDto {
 
   @ApiProperty({ 
     description: 'Date de naissance (format ISO: YYYY-MM-DD)', 
-    example: '1990-01-15' 
+    example: '1990-01-15',
+    required: false 
   })
+  @IsOptional()
   @IsDateString({}, { message: 'Format de date invalide (YYYY-MM-DD)' })
-  @IsNotEmpty({ message: 'La date de naissance est obligatoire' })
-  birthDate: string;
+  birthDate?: string;
 
   @ApiProperty({ 
     description: 'Genre de l\'utilisateur', 

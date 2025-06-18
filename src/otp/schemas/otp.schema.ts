@@ -24,7 +24,7 @@ export class Otp {
     password: string;
     firstName: string;
     lastName: string;
-    birthDate: string;
+    birthDate?: string;
     gender?: string;
     address?: string;
     city?: string;

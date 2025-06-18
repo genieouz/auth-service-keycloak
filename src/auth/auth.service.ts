@@ -34,18 +34,20 @@ export class AuthService {
       throw new BadRequestException('L\'acceptation de la politique de confidentialité est obligatoire');
     }
 
-    // Validation de l'âge (minimum 13 ans)
-    const birthDate = new Date(registerDto.birthDate);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    if (age < 13) {
-      throw new BadRequestException('Vous devez avoir au moins 13 ans pour créer un compte');
+    // Validation de l'âge si la date de naissance est fournie (minimum 13 ans)
+    if (registerDto.birthDate) {
+      const birthDate = new Date(registerDto.birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 13) {
+        throw new BadRequestException('Vous devez avoir au moins 13 ans pour créer un compte');
+      }
     }
 
     try {
