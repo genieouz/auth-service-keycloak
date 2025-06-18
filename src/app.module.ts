@@ -24,6 +24,7 @@ import { KeycloakModule } from "./keycloak/keycloak.module";
     OtpModule,
     UsersModule,
     KeycloakModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}
