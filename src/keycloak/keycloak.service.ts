@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import * as jwksClient from 'jwks-rsa';
 import { KeycloakTokenResponse, KeycloakUser, KeycloakError } from '../common/interfaces/keycloak.interface';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class KeycloakService {
   private readonly adminClientId: string;
   private readonly adminClientSecret: string;
   private readonly userClientId: string;
+  private readonly jwksClient: jwksClient.JwksClient;
 
   constructor(private configService: ConfigService) {
     this.keycloakUrl = this.configService.get('KEYCLOAK_URL');
@@ -23,6 +25,16 @@ export class KeycloakService {
     this.httpClient = axios.create({
       baseURL: this.keycloakUrl,
       timeout: 10000,
+    });
+
+    // Initialiser le client JWKS pour la vérification des tokens
+    this.jwksClient = jwksClient({
+      jwksUri: `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/certs`,
+      cache: true,
+      cacheMaxEntries: 5,
+      cacheMaxAge: 600000, // 10 minutes
+      rateLimit: true,
+      jwksRequestsPerMinute: 10,
     });
   }
 
@@ -50,6 +62,49 @@ export class KeycloakService {
     } catch (error) {
       this.logger.error('Erreur lors de l\'obtention du token admin', error.response?.data);
       throw new UnauthorizedException('Impossible d\'obtenir le token d\'accès admin');
+    }
+  }
+
+  /**
+   * Obtenir la clé publique pour vérifier un token JWT
+   */
+  async getPublicKey(kid: string): Promise<string> {
+    try {
+      const key = await this.jwksClient.getSigningKey(kid);
+      return key.getPublicKey();
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de la clé publique: ${kid}`, error);
+      throw new UnauthorizedException('Impossible de vérifier le token');
+    }
+  }
+
+  /**
+   * Vérifier et décoder un token JWT de Keycloak
+   */
+  async verifyToken(token: string): Promise<any> {
+    try {
+      // Décoder le header pour obtenir le kid (key ID)
+      const header = JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString());
+      
+      if (!header.kid) {
+        throw new UnauthorizedException('Token invalide: kid manquant');
+      }
+
+      // Obtenir la clé publique correspondante
+      const publicKey = await this.getPublicKey(header.kid);
+      
+      // Vérifier le token avec la clé publique
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, publicKey, {
+        algorithms: ['RS256'],
+        audience: this.userClientId,
+        issuer: `${this.keycloakUrl}/realms/${this.realm}`,
+      });
+
+      return decoded;
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du token', error);
+      throw new UnauthorizedException('Token invalide ou expiré');
     }
   }
 

@@ -149,7 +149,11 @@ export class AuthService {
     const identifier = email || phone;
     
     try {
-      return await this.keycloakService.authenticateUser(identifier, password);
+      const tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
+      
+      this.logger.log(`Connexion réussie pour l'utilisateur: ${identifier}`);
+      
+      return tokenResponse;
     } catch (error) {
       this.logger.error('Erreur lors de la connexion', error);
       throw error;
