@@ -116,7 +116,7 @@ export class NotificationService {
    * Envoyer un code OTP par SMS
    */
   async sendOtpSms(phone: string, code: string): Promise<NotificationResponse> {
-    const message = `Votre code de vérification SenegalServices est: ${code}. Ce code expire dans 5 minutes. Ne le partagez avec personne.`;
+    const message = `SenegalServices: Votre code de vérification est ${code}. Valide 5 min. Ne le partagez pas. "Dalal ak diam ci Guichet unique"`;
     
     return this.sendSms({
       to: phone,
@@ -131,13 +131,28 @@ export class NotificationService {
   async sendOtpEmail(email: string, code: string): Promise<NotificationResponse> {
     const subject = 'Code de vérification SenegalServices';
     const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #1e40af; margin: 0;">SenegalServices</h1>
+          <p style="color: #64748b; margin: 5px 0;">"Dalal ak diam ci Guichet unique"</p>
+        </div>
+        
       <h2>Code de vérification</h2>
       <p>Votre code de vérification SenegalServices est:</p>
       <h1 style="color: #007bff; font-size: 32px; text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 8px;">${code}</h1>
       <p><strong>Ce code expire dans 5 minutes.</strong></p>
+      <p>Utilisez ce code pour finaliser la création de votre compte et accéder à tous nos services administratifs en ligne.</p>
       <p>Si vous n'avez pas demandé ce code, ignorez ce message.</p>
-      <hr>
-      <p><small>SenegalServices - Service d'authentification</small></p>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+        <p style="color: #64748b; font-size: 14px;">
+          Effectuez vos démarches administratives en ligne, sans vous déplacer
+        </p>
+        <p style="color: #64748b; font-size: 12px;">
+          © 2024 SenegalServices - Service d'authentification
+        </p>
+      </div>
+      </div>
     `;
     
     return this.sendEmail({

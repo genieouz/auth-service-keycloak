@@ -17,6 +17,17 @@ export interface KeycloakUser {
   emailVerified?: boolean;
   attributes?: {
     phone?: string[];
+    birthDate?: string[];
+    gender?: string[];
+    address?: string[];
+    city?: string[];
+    postalCode?: string[];
+    country?: string[];
+    profession?: string[];
+    acceptTerms?: string[];
+    acceptPrivacyPolicy?: string[];
+    acceptMarketing?: string[];
+    registrationDate?: string[];
     [key: string]: any;
   };
   credentials?: KeycloakCredential[];

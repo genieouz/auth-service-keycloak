@@ -68,11 +68,23 @@ export class UsersService {
         enabled: updateUserDto.enabled,
       };
 
-      // Ajouter le téléphone dans les attributs si fourni
-      if (updateUserDto.phone) {
-        keycloakUserData.attributes = {
-          phone: [updateUserDto.phone],
-        };
+      // Construire les attributs utilisateur
+      const attributes: { [key: string]: string[] } = {};
+      
+      if (updateUserDto.phone) attributes.phone = [updateUserDto.phone];
+      if (updateUserDto.birthDate) attributes.birthDate = [updateUserDto.birthDate];
+      if (updateUserDto.gender) attributes.gender = [updateUserDto.gender];
+      if (updateUserDto.address) attributes.address = [updateUserDto.address];
+      if (updateUserDto.city) attributes.city = [updateUserDto.city];
+      if (updateUserDto.postalCode) attributes.postalCode = [updateUserDto.postalCode];
+      if (updateUserDto.country) attributes.country = [updateUserDto.country];
+      if (updateUserDto.profession) attributes.profession = [updateUserDto.profession];
+      if (updateUserDto.acceptMarketing !== undefined) {
+        attributes.acceptMarketing = [updateUserDto.acceptMarketing.toString()];
+      }
+      
+      if (Object.keys(attributes).length > 0) {
+        keycloakUserData.attributes = attributes;
       }
 
       // Mettre à jour dans Keycloak

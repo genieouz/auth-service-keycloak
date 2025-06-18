@@ -25,6 +25,29 @@ export class AuthService {
       throw new BadRequestException('Email ou téléphone requis pour l\'inscription');
     }
 
+    // Validation des conditions générales
+    if (!registerDto.acceptTerms) {
+      throw new BadRequestException('L\'acceptation des conditions générales est obligatoire');
+    }
+
+    if (!registerDto.acceptPrivacyPolicy) {
+      throw new BadRequestException('L\'acceptation de la politique de confidentialité est obligatoire');
+    }
+
+    // Validation de l'âge (minimum 13 ans)
+    const birthDate = new Date(registerDto.birthDate);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    if (age < 13) {
+      throw new BadRequestException('Vous devez avoir au moins 13 ans pour créer un compte');
+    }
+
     try {
       // Vérifier si l'utilisateur existe déjà dans Keycloak (optimisé)
       const userExists = await this.keycloakService.userExists(email, phone);
@@ -70,7 +93,22 @@ export class AuthService {
         lastName: lastName,
         enabled: true,
         emailVerified: !!email,
-        attributes: phone ? { phone: [phone] } : {},
+        attributes: {
+          ...(phone && { phone: [phone] }),
+          ...(otpRecord.userData.birthDate && { birthDate: [otpRecord.userData.birthDate] }),
+          ...(otpRecord.userData.gender && { gender: [otpRecord.userData.gender] }),
+          ...(otpRecord.userData.address && { address: [otpRecord.userData.address] }),
+          ...(otpRecord.userData.city && { city: [otpRecord.userData.city] }),
+          ...(otpRecord.userData.postalCode && { postalCode: [otpRecord.userData.postalCode] }),
+          ...(otpRecord.userData.country && { country: [otpRecord.userData.country] }),
+          ...(otpRecord.userData.profession && { profession: [otpRecord.userData.profession] }),
+          acceptTerms: [otpRecord.userData.acceptTerms.toString()],
+          acceptPrivacyPolicy: [otpRecord.userData.acceptPrivacyPolicy.toString()],
+          ...(otpRecord.userData.acceptMarketing !== undefined && { 
+            acceptMarketing: [otpRecord.userData.acceptMarketing.toString()] 
+          }),
+          registrationDate: [new Date().toISOString()],
+        },
         credentials: [{
           type: 'password',
           value: password,

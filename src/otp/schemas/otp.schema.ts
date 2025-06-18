@@ -22,8 +22,18 @@ export class Otp {
     email?: string;
     phone?: string;
     password: string;
-    firstName?: string;
-    lastName?: string;
+    firstName: string;
+    lastName: string;
+    birthDate: string;
+    gender?: string;
+    address?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    profession?: string;
+    acceptTerms: boolean;
+    acceptPrivacyPolicy: boolean;
+    acceptMarketing?: boolean;
   };
 }
 

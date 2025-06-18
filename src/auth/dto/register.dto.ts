@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty, IsOptional, IsEmail, Matches, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEmail, Matches, MinLength, IsDateString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class RegisterDto {
   @ApiProperty({ 
@@ -31,19 +32,109 @@ export class RegisterDto {
 
   @ApiProperty({ 
     description: 'Prénom de l\'utilisateur', 
-    example: 'Amadou',
-    required: false 
+    example: 'Amadou' 
   })
-  @IsOptional()
   @IsString()
-  firstName?: string;
+  @IsNotEmpty({ message: 'Le prénom est obligatoire' })
+  firstName: string;
 
   @ApiProperty({ 
     description: 'Nom de famille de l\'utilisateur', 
-    example: 'Diallo',
+    example: 'Diallo' 
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Le nom de famille est obligatoire' })
+  lastName: string;
+
+  @ApiProperty({ 
+    description: 'Date de naissance (format ISO: YYYY-MM-DD)', 
+    example: '1990-01-15' 
+  })
+  @IsDateString({}, { message: 'Format de date invalide (YYYY-MM-DD)' })
+  @IsNotEmpty({ message: 'La date de naissance est obligatoire' })
+  birthDate: string;
+
+  @ApiProperty({ 
+    description: 'Genre de l\'utilisateur', 
+    example: 'M',
+    enum: ['M', 'F', 'Autre'],
     required: false 
   })
   @IsOptional()
   @IsString()
-  lastName?: string;
+  @Matches(/^(M|F|Autre)$/, { message: 'Le genre doit être M, F ou Autre' })
+  gender?: string;
+
+  @ApiProperty({ 
+    description: 'Adresse de l\'utilisateur', 
+    example: 'Dakar, Sénégal',
+    required: false 
+  })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiProperty({ 
+    description: 'Ville de résidence', 
+    example: 'Dakar',
+    required: false 
+  })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiProperty({ 
+    description: 'Code postal', 
+    example: '10000',
+    required: false 
+  })
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
+  @ApiProperty({ 
+    description: 'Pays de résidence', 
+    example: 'Sénégal',
+    required: false,
+    default: 'Sénégal'
+  })
+  @IsOptional()
+  @IsString()
+  country?: string = 'Sénégal';
+
+  @ApiProperty({ 
+    description: 'Profession de l\'utilisateur', 
+    example: 'Développeur',
+    required: false 
+  })
+  @IsOptional()
+  @IsString()
+  profession?: string;
+
+  @ApiProperty({ 
+    description: 'Acceptation des conditions générales', 
+    example: true 
+  })
+  @IsBoolean({ message: 'L\'acceptation des conditions générales est requise' })
+  @Transform(({ value }) => value === true || value === 'true')
+  acceptTerms: boolean;
+
+  @ApiProperty({ 
+    description: 'Acceptation de la politique de confidentialité', 
+    example: true 
+  })
+  @IsBoolean({ message: 'L\'acceptation de la politique de confidentialité est requise' })
+  @Transform(({ value }) => value === true || value === 'true')
+  acceptPrivacyPolicy: boolean;
+
+  @ApiProperty({ 
+    description: 'Consentement pour recevoir des communications marketing', 
+    example: false,
+    required: false,
+    default: false
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === true || value === 'true')
+  acceptMarketing?: boolean = false;
 }
