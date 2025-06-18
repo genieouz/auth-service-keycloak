@@ -388,4 +388,106 @@ export class KeycloakService {
       throw new BadRequestException('Impossible de supprimer l\'utilisateur');
     }
   }
+
+  /**
+   * Rafraîchir un token d'accès
+   */
+  async refreshToken(refreshToken: string): Promise<KeycloakTokenResponse> {
+    try {
+      const response = await this.httpClient.post(
+        `/realms/${this.realm}/protocol/openid-connect/token`,
+        new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: this.userClientId,
+          refresh_token: refreshToken,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erreur lors du rafraîchissement du token', error.response?.data);
+      throw new UnauthorizedException('Token de rafraîchissement invalide');
+    }
+  }
+
+  /**
+   * Changer le mot de passe d'un utilisateur
+   */
+  async changeUserPassword(userId: string, newPassword: string): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      await this.httpClient.put(
+        `/admin/realms/${this.realm}/users/${userId}/reset-password`,
+        {
+          type: 'password',
+          value: newPassword,
+          temporary: false,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      this.logger.log(`Mot de passe changé pour l'utilisateur ${userId}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors du changement de mot de passe pour ${userId}`, error.response?.data);
+      throw new BadRequestException('Impossible de changer le mot de passe');
+    }
+  }
+
+  /**
+   * Trouver un utilisateur par identifiant (email ou téléphone)
+   */
+  async findUserByIdentifier(identifier: string): Promise<KeycloakUser | null> {
+    try {
+      // Essayer d'abord par email
+      if (identifier.includes('@')) {
+        const users = await this.searchUsers(identifier);
+        return users.find(user => user.email === identifier) || null;
+      }
+      
+      // Sinon chercher par téléphone dans les attributs
+      const users = await this.searchUsers(identifier);
+      return users.find(user => 
+        user.attributes?.phone?.includes(identifier) ||
+        user.username === identifier
+      ) || null;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la recherche par identifiant: ${identifier}`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Déconnecter un utilisateur (invalider ses sessions)
+   */
+  async logoutUser(userId: string): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      await this.httpClient.post(
+        `/admin/realms/${this.realm}/users/${userId}/logout`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+
+      this.logger.log(`Sessions invalidées pour l'utilisateur ${userId}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la déconnexion de l'utilisateur ${userId}`, error.response?.data);
+      // Ne pas faire échouer la déconnexion si Keycloak échoue
+    }
+  }
 }

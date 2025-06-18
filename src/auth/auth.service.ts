@@ -1,8 +1,11 @@
-import { Injectable, Logger, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { OtpService } from '../otp/otp.service';
 import { KeycloakService } from '../keycloak/keycloak.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from '../otp/dto/verify-otp.dto';
 import { KeycloakUser, KeycloakTokenResponse } from '../common/interfaces/keycloak.interface';
 
@@ -150,6 +153,128 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Erreur lors de la connexion', error);
       throw error;
+    }
+  }
+
+  /**
+   * Rafraîchir le token d'accès
+   */
+  async refreshToken(refreshToken: string): Promise<KeycloakTokenResponse> {
+    try {
+      return await this.keycloakService.refreshToken(refreshToken);
+    } catch (error) {
+      this.logger.error('Erreur lors du rafraîchissement du token', error);
+      throw new UnauthorizedException('Token de rafraîchissement invalide');
+    }
+  }
+
+  /**
+   * Changer le mot de passe d'un utilisateur
+   */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<void> {
+    try {
+      // Vérifier l'ancien mot de passe en tentant une authentification
+      const user = await this.keycloakService.getUserById(userId);
+      const identifier = user.email || user.attributes?.phone?.[0];
+      
+      if (!identifier) {
+        throw new BadRequestException('Impossible de vérifier l\'identité de l\'utilisateur');
+      }
+
+      // Tenter l'authentification avec l'ancien mot de passe
+      try {
+        await this.keycloakService.authenticateUser(identifier, changePasswordDto.currentPassword);
+      } catch (error) {
+        throw new BadRequestException('Mot de passe actuel incorrect');
+      }
+
+      // Changer le mot de passe
+      await this.keycloakService.changeUserPassword(userId, changePasswordDto.newPassword);
+      
+      this.logger.log(`Mot de passe changé pour l'utilisateur ${userId}`);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Erreur lors du changement de mot de passe', error);
+      throw new BadRequestException('Impossible de changer le mot de passe');
+    }
+  }
+
+  /**
+   * Demander la réinitialisation du mot de passe
+   */
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string; expiresAt: Date }> {
+    const { email, phone } = forgotPasswordDto;
+    
+    if (!email && !phone) {
+      throw new BadRequestException('Email ou téléphone requis');
+    }
+    try {
+      // Vérifier si l'utilisateur existe
+      const userExists = await this.keycloakService.userExists(email, phone);
+      
+      if (!userExists) {
+        throw new NotFoundException('Aucun utilisateur trouvé avec cet email ou téléphone');
+      }
+
+      // Générer un code OTP pour la réinitialisation
+      const otpResult = await this.otpService.generatePasswordResetOtp({ email, phone });
+      
+      const deliveryMethod = email ? 'email' : 'SMS';
+      
+      return {
+        message: `Code de réinitialisation envoyé par ${deliveryMethod}`,
+        expiresAt: otpResult.expiresAt,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Erreur lors de la demande de réinitialisation', error);
+      throw new BadRequestException('Erreur lors du processus de réinitialisation');
+    }
+  }
+
+  /**
+   * Réinitialiser le mot de passe avec le code OTP
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    try {
+      // Vérifier le code OTP de réinitialisation
+      const otpRecord = await this.otpService.verifyPasswordResetOtp(resetPasswordDto);
+      
+      // Trouver l'utilisateur dans Keycloak
+      const identifier = resetPasswordDto.email || resetPasswordDto.phone;
+      const user = await this.keycloakService.findUserByIdentifier(identifier);
+      
+      if (!user) {
+        throw new NotFoundException('Utilisateur non trouvé');
+      }
+
+      // Réinitialiser le mot de passe
+      await this.keycloakService.changeUserPassword(user.id, resetPasswordDto.newPassword);
+      
+      this.logger.log(`Mot de passe réinitialisé pour l'utilisateur ${user.id}`);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error('Erreur lors de la réinitialisation du mot de passe', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Déconnecter un utilisateur (invalider les sessions)
+   */
+  async logout(userId: string): Promise<void> {
+    try {
+      await this.keycloakService.logoutUser(userId);
+      this.logger.log(`Utilisateur ${userId} déconnecté`);
+    } catch (error) {
+      this.logger.error('Erreur lors de la déconnexion', error);
+      // Ne pas faire échouer la déconnexion côté client même si Keycloak échoue
     }
   }
 }

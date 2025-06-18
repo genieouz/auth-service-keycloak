@@ -175,4 +175,67 @@ export class NotificationService {
       return false;
     }
   }
+
+  /**
+   * Envoyer un code de réinitialisation par SMS
+   */
+  async sendPasswordResetSms(phone: string, code: string): Promise<NotificationResponse> {
+    const message = `SenegalServices: Code de réinitialisation ${code}. Valide 10 min. Sécurisez votre compte. Ne le partagez pas.`;
+    
+    return this.sendSms({
+      to: phone,
+      message,
+      from: 'SenegalServices',
+    });
+  }
+
+  /**
+   * Envoyer un code de réinitialisation par email
+   */
+  async sendPasswordResetEmail(email: string, code: string): Promise<NotificationResponse> {
+    const subject = 'Réinitialisation de mot de passe - SenegalServices';
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #dc2626; margin: 0;">🔒 SenegalServices</h1>
+          <p style="color: #64748b; margin: 5px 0;">"Dalal ak diam ci Guichet unique"</p>
+        </div>
+        
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #dc2626; margin-top: 0;">Réinitialisation de mot de passe</h2>
+          <p>Une demande de réinitialisation de mot de passe a été effectuée pour votre compte.</p>
+        </div>
+        
+        <p>Votre code de réinitialisation est :</p>
+        <h1 style="color: #dc2626; font-size: 32px; text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 2px solid #dc2626;">${code}</h1>
+        
+        <div style="background-color: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>⚠️ Important :</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Ce code expire dans <strong>10 minutes</strong></li>
+            <li>Ne partagez jamais ce code avec personne</li>
+            <li>Si vous n'avez pas demandé cette réinitialisation, ignorez ce message</li>
+          </ul>
+        </div>
+        
+        <p>Utilisez ce code pour définir votre nouveau mot de passe et sécuriser votre accès aux services administratifs.</p>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <p style="color: #64748b; font-size: 14px;">
+            Sécurisez vos démarches administratives en ligne
+          </p>
+          <p style="color: #64748b; font-size: 12px;">
+            © 2024 SenegalServices - Service d'authentification sécurisé
+          </p>
+        </div>
+      </div>
+    `;
+    
+    return this.sendEmail({
+      to: email,
+      subject,
+      message,
+      from: 'security@senegalservices.com',
+    });
+  }
 }

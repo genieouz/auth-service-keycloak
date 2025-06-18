@@ -123,4 +123,16 @@ export class UsersService {
       throw error;
     }
   }
+
+  /**
+   * Rechercher des utilisateurs
+   */
+  async searchUsers(query: string): Promise<KeycloakUser[]> {
+    try {
+      return await this.keycloakService.searchUsers(query);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la recherche d'utilisateurs: ${query}`, error);
+      throw error;
+    }
+  }
 }

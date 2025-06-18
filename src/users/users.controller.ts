@@ -8,7 +8,8 @@ import {
   Query, 
   HttpCode, 
   HttpStatus, 
-  Logger 
+  Logger,
+  UseGuards
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -16,21 +17,29 @@ import {
   ApiResponse, 
   ApiParam, 
   ApiQuery,
-  ApiBody 
+  ApiBody,
+  ApiBearerAuth
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { ApiResponseDto, PaginatedResponseDto } from '../common/dto/response.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard, Role } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('utilisateurs')
+@ApiBearerAuth()
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
 
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ 
     summary: 'Lister les utilisateurs',
     description: 'Récupère la liste paginée de tous les utilisateurs enregistrés'
@@ -44,6 +53,10 @@ export class UsersController {
   @ApiResponse({ 
     status: 400, 
     description: 'Paramètres de requête invalides' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
   })
   async getUsers(@Query() query: GetUsersQueryDto) {
     try {
@@ -63,7 +76,71 @@ export class UsersController {
     }
   }
 
+  @Get('me')
+  @ApiOperation({ 
+    summary: 'Récupérer son profil utilisateur',
+    description: 'Récupère les informations du profil de l\'utilisateur connecté'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profil utilisateur récupéré avec succès',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Non authentifié' 
+  })
+  async getMyProfile(@CurrentUser() user: any) {
+    try {
+      const userProfile = await this.usersService.getUserById(user.userId);
+      return {
+        success: true,
+        message: 'Profil récupéré avec succès',
+        data: userProfile,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération du profil ${user.userId}`, error);
+      throw error;
+    }
+  }
+
+  @Patch('me')
+  @ApiOperation({ 
+    summary: 'Mettre à jour son profil',
+    description: 'Modifie les informations du profil de l\'utilisateur connecté'
+  })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profil mis à jour avec succès',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Données de mise à jour invalides' 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Non authentifié' 
+  })
+  async updateMyProfile(@CurrentUser() user: any, @Body() updateUserDto: UpdateUserDto) {
+    try {
+      // Empêcher la modification du statut enabled par l'utilisateur lui-même
+      const { enabled, ...safeUpdateData } = updateUserDto;
+      
+      const updatedUser = await this.usersService.updateUser(user.userId, safeUpdateData);
+      return {
+        success: true,
+        message: 'Profil mis à jour avec succès',
+        data: updatedUser,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour du profil ${user.userId}`, error);
+      throw error;
+    }
+  }
   @Get(':id')
+  @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ 
     summary: 'Récupérer un utilisateur par ID',
     description: 'Récupère les détails d\'un utilisateur spécifique par son identifiant unique'
@@ -82,6 +159,10 @@ export class UsersController {
     status: 404, 
     description: 'Utilisateur non trouvé' 
   })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
   async getUserById(@Param('id') id: string) {
     try {
       const user = await this.usersService.getUserById(id);
@@ -97,6 +178,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Roles(Role.ADMIN)
   @ApiOperation({ 
     summary: 'Mettre à jour un utilisateur',
     description: 'Modifie les informations d\'un utilisateur existant'
@@ -120,6 +202,10 @@ export class UsersController {
     status: 404, 
     description: 'Utilisateur non trouvé' 
   })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
   async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     try {
       const updatedUser = await this.usersService.updateUser(id, updateUserDto);
@@ -135,6 +221,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Supprimer un utilisateur',
@@ -154,6 +241,10 @@ export class UsersController {
     status: 404, 
     description: 'Utilisateur non trouvé' 
   })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
   async deleteUser(@Param('id') id: string) {
     try {
       const result = await this.usersService.deleteUser(id);
@@ -163,6 +254,40 @@ export class UsersController {
       };
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur ${id}`, error);
+      throw error;
+    }
+  }
+
+  @Get('search/:query')
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @ApiOperation({ 
+    summary: 'Rechercher des utilisateurs',
+    description: 'Recherche des utilisateurs par nom, email ou téléphone'
+  })
+  @ApiParam({ 
+    name: 'query', 
+    description: 'Terme de recherche',
+    example: 'amadou'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Résultats de recherche récupérés avec succès',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
+  async searchUsers(@Param('query') query: string) {
+    try {
+      const users = await this.usersService.searchUsers(query);
+      return {
+        success: true,
+        message: 'Recherche effectuée avec succès',
+        data: users,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la recherche d'utilisateurs: ${query}`, error);
       throw error;
     }
   }

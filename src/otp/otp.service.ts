@@ -119,4 +119,94 @@ export class OtpService {
 
     this.logger.log(`${result.deletedCount} codes OTP expirés supprimés`);
   }
+
+  /**
+   * Générer un code OTP pour la réinitialisation de mot de passe
+   */
+  async generatePasswordResetOtp(data: { email?: string; phone?: string }): Promise<{ code: string; expiresAt: Date; sent: boolean }> {
+    const { email, phone } = data;
+    
+    if (!email && !phone) {
+      throw new BadRequestException('Email ou téléphone requis');
+    }
+
+    const identifier = email || phone;
+    const code = this.generateOtpCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes pour reset password
+
+    // Supprimer les anciens codes OTP pour cet identifiant
+    await this.otpModel.deleteMany({ 
+      identifier,
+      'userData.type': 'password_reset'
+    });
+
+    // Créer le nouveau code OTP
+    const otp = new this.otpModel({
+      identifier,
+      code,
+      expiresAt,
+      userData: {
+        email,
+        phone,
+        type: 'password_reset',
+      },
+    });
+
+    await otp.save();
+
+    this.logger.log(`Code OTP de réinitialisation généré pour ${identifier}`);
+    
+    // Envoyer le code OTP via le service de notification
+    let sent = false;
+    try {
+      if (email) {
+        await this.notificationService.sendPasswordResetEmail(email, code);
+        this.logger.log(`Code OTP de réinitialisation envoyé par email à ${email}`);
+        sent = true;
+      } else if (phone) {
+        await this.notificationService.sendPasswordResetSms(phone, code);
+        this.logger.log(`Code OTP de réinitialisation envoyé par SMS à ${phone}`);
+        sent = true;
+      }
+    } catch (error) {
+      this.logger.error('Erreur lors de l\'envoi du code OTP de réinitialisation', error);
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.warn(`CODE OTP RESET POUR TESTS: ${code}`);
+      }
+    }
+    
+    return { code: process.env.NODE_ENV === 'development' ? code : '******', expiresAt, sent };
+  }
+
+  /**
+   * Vérifier un code OTP de réinitialisation de mot de passe
+   */
+  async verifyPasswordResetOtp(data: { email?: string; phone?: string; code: string }): Promise<OtpDocument> {
+    const { email, phone, code } = data;
+    
+    if (!email && !phone) {
+      throw new BadRequestException('Email ou téléphone requis');
+    }
+
+    const identifier = email || phone;
+
+    const otp = await this.otpModel.findOne({
+      identifier,
+      code,
+      verified: false,
+      expiresAt: { $gt: new Date() },
+      'userData.type': 'password_reset',
+    });
+
+    if (!otp) {
+      throw new NotFoundException('Code OTP de réinitialisation invalide ou expiré');
+    }
+
+    // Marquer le code comme vérifié
+    otp.verified = true;
+    await otp.save();
+
+    this.logger.log(`Code OTP de réinitialisation vérifié avec succès pour ${identifier}`);
+    return otp;
+  }
 }
