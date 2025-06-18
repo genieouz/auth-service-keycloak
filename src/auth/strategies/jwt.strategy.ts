@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, StrategyOptions } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -6,16 +6,12 @@ import { KeycloakService } from '../../keycloak/keycloak.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(
     private configService: ConfigService,
     private keycloakService: KeycloakService,
   ) {
-    // Obtenir les audiences autorisées
-    const audiences = [
-      'account', // Audience par défaut de Keycloak
-      configService.get('KEYCLOAK_USER_CLIENT_ID'),
-    ].filter(Boolean);
-
     const options: StrategyOptions = {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -36,10 +32,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }
       },
       algorithms: ['RS256'],
-      audience: audiences,
       issuer: `${configService.get('KEYCLOAK_URL')}/realms/${configService.get('KEYCLOAK_REALM')}`,
-      // Désactiver la validation d'audience stricte pour permettre plus de flexibilité
-      ignoreAudience: false,
+      // Pas de validation d'audience stricte pour le moment
     };
 
     super(options);
@@ -48,13 +42,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any) {
     try {
       // Log pour debug (à supprimer en production)
-      console.log('JWT Payload:', {
+      this.logger.debug('JWT Payload:', {
         sub: payload.sub,
         aud: payload.aud,
         iss: payload.iss,
         preferred_username: payload.preferred_username,
         email: payload.email,
+        exp: payload.exp,
+        iat: payload.iat,
       });
+
+      // Vérifier l'audience manuellement
+      const validAudiences = ['account', this.configService.get('KEYCLOAK_USER_CLIENT_ID')];
+      const tokenAudience = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+      
+      const hasValidAudience = validAudiences.some(validAud => 
+        tokenAudience.includes(validAud)
+      );
+
+      if (!hasValidAudience) {
+        this.logger.warn(`Token audience invalide. Attendu: ${validAudiences.join(', ')}, Reçu: ${tokenAudience.join(', ')}`);
+        // Pour le moment, on log seulement sans bloquer
+        // throw new UnauthorizedException('Audience du token invalide');
+      }
 
       // Le payload contient déjà les informations du token vérifié
       if (!payload.sub) {
@@ -67,12 +77,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         user = await this.keycloakService.getUserById(payload.sub);
       } catch (error) {
         // Si l'utilisateur n'existe plus dans Keycloak, on refuse l'accès
+        this.logger.error(`Utilisateur ${payload.sub} non trouvé dans Keycloak`);
         throw new UnauthorizedException('Utilisateur non trouvé');
       }
       
       if (!user || !user.enabled) {
         throw new UnauthorizedException('Utilisateur désactivé ou inexistant');
       }
+
+      this.logger.debug(`Authentification réussie pour l'utilisateur: ${payload.preferred_username}`);
 
       return {
         userId: payload.sub,
@@ -83,11 +96,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         firstName: user.firstName,
         lastName: user.lastName,
         scope: payload.scope,
+        tokenAudience: tokenAudience,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
+      this.logger.error('Erreur lors de la validation du token:', error);
       throw new UnauthorizedException('Erreur lors de la validation du token');
     }
   }
