@@ -15,6 +15,7 @@ async function bootstrap() {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
+    disableErrorMessages: process.env.NODE_ENV === 'production',
     transformOptions: {
       enableImplicitConversion: true,
     },
@@ -22,9 +23,10 @@ async function bootstrap() {
 
   // Configuration CORS
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+    origin: true, // Autorise toutes les origines
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
+    optionsSuccessStatus: 200,
   });
 
   // Configuration Swagger
