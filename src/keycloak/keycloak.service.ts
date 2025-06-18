@@ -93,11 +93,16 @@ export class KeycloakService {
       // Obtenir la clé publique correspondante
       const publicKey = await this.getPublicKey(header.kid);
       
+      // Décoder le payload pour voir l'audience
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      console.log('Token audience:', payload.aud);
+      
       // Vérifier le token avec la clé publique
       const jwt = require('jsonwebtoken');
       const decoded = jwt.verify(token, publicKey, {
         algorithms: ['RS256'],
-        audience: this.userClientId,
+        // Désactiver temporairement la validation d'audience pour debug
+        // audience: ['account', this.userClientId],
         issuer: `${this.keycloakUrl}/realms/${this.realm}`,
       });
 

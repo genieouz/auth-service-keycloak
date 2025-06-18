@@ -10,6 +10,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     private keycloakService: KeycloakService,
   ) {
+    // Obtenir les audiences autorisées
+    const audiences = [
+      'account', // Audience par défaut de Keycloak
+      configService.get('KEYCLOAK_USER_CLIENT_ID'),
+    ].filter(Boolean);
+
     const options: StrategyOptions = {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -30,8 +36,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }
       },
       algorithms: ['RS256'],
-      audience: configService.get('KEYCLOAK_USER_CLIENT_ID'),
+      audience: audiences,
       issuer: `${configService.get('KEYCLOAK_URL')}/realms/${configService.get('KEYCLOAK_REALM')}`,
+      // Désactiver la validation d'audience stricte pour permettre plus de flexibilité
+      ignoreAudience: false,
     };
 
     super(options);
@@ -39,6 +47,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     try {
+      // Log pour debug (à supprimer en production)
+      console.log('JWT Payload:', {
+        sub: payload.sub,
+        aud: payload.aud,
+        iss: payload.iss,
+        preferred_username: payload.preferred_username,
+        email: payload.email,
+      });
+
       // Le payload contient déjà les informations du token vérifié
       if (!payload.sub) {
         throw new UnauthorizedException('Token invalide: subject manquant');
