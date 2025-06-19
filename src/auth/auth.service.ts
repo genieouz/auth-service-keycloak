@@ -254,7 +254,7 @@ export class AuthService {
       access_token: tokenResponse.access_token,
       token_type: tokenResponse.token_type || 'Bearer',
       expires_in: tokenResponse.expires_in,
-      refresh_token: tokenResponse.refresh_token,
+      refresh_token: tokenResponse.refresh_token || null,
       scope: tokenResponse.scope,
       issuedAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
