@@ -105,7 +105,8 @@ export class AuthService {
         firstName: firstName,
         lastName: lastName,
         enabled: true,
-        emailVerified: !!email,
+        emailVerified: true, // Toujours marquer comme vérifié après OTP
+        requiredActions: [], // Aucune action requise
         attributes: {
           ...(phone && { phone: [phone] }),
           ...(otpRecord.userData.birthDate && { birthDate: [otpRecord.userData.birthDate] }),
@@ -121,6 +122,7 @@ export class AuthService {
             acceptMarketing: [otpRecord.userData.acceptMarketing.toString()] 
           }),
           registrationDate: [new Date().toISOString()],
+          accountSetupComplete: ['true'], // Marquer le compte comme complètement configuré
         },
         credentials: [{
           type: 'password',
@@ -134,9 +136,29 @@ export class AuthService {
       
       this.logger.log(`Utilisateur créé avec succès: ${userId}`);
       
+      // Attendre un peu pour que Keycloak finalise la création
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Authentifier automatiquement l'utilisateur après création
       const identifier = email || phone;
-      const tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
+      let tokenResponse;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
+          break;
+        } catch (error) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            this.logger.error(`Impossible d'authentifier l'utilisateur après ${maxRetries} tentatives`, error);
+            throw new BadRequestException('Utilisateur créé mais impossible de se connecter automatiquement. Veuillez vous connecter manuellement.');
+          }
+          // Attendre avant de réessayer
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
       
       // Récupérer les informations complètes de l'utilisateur
       const userProfile = await this.keycloakService.getUserById(userId);

@@ -121,6 +121,7 @@ export class KeycloakService {
           client_id: this.userClientId,
           username: identifier,
           password: password,
+          scope: 'openid profile email', // Demander les scopes nécessaires
         }),
         {
           headers: {
@@ -133,6 +134,12 @@ export class KeycloakService {
     } catch (error) {
       this.logger.error('Erreur lors de l\'authentification utilisateur', error.response?.data);
       const errorData: KeycloakError = error.response?.data;
+      
+      // Gestion spécifique de l'erreur "Account is not fully set up"
+      if (errorData?.error_description?.includes('Account is not fully set up')) {
+        throw new UnauthorizedException('Compte en cours de finalisation. Veuillez réessayer dans quelques instants.');
+      }
+      
       throw new UnauthorizedException(errorData?.error_description || 'Identifiants invalides');
     }
   }
@@ -144,9 +151,22 @@ export class KeycloakService {
     try {
       const adminToken = await this.getAdminToken();
       
+      // S'assurer que l'utilisateur est complètement configuré
+      const completeUserData = {
+        ...userData,
+        enabled: true,
+        emailVerified: true, // Marquer l'email comme vérifié
+        requiredActions: [], // Aucune action requise
+        // S'assurer que les credentials sont bien définis
+        credentials: userData.credentials || [{
+          type: 'password',
+          temporary: false,
+        }],
+      };
+      
       const response = await this.httpClient.post(
         `/admin/realms/${this.realm}/users`,
-        userData,
+        completeUserData,
         {
           headers: {
             Authorization: `Bearer ${adminToken}`,
@@ -161,6 +181,20 @@ export class KeycloakService {
       
       if (!userId) {
         throw new Error('Impossible de récupérer l\'ID de l\'utilisateur créé');
+      }
+
+      // Attendre un peu pour que Keycloak finalise la création
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Vérifier que l'utilisateur est bien créé et activé
+      try {
+        const createdUser = await this.getUserById(userId);
+        if (!createdUser.enabled) {
+          // Forcer l'activation si nécessaire
+          await this.updateUser(userId, { enabled: true, emailVerified: true });
+        }
+      } catch (error) {
+        this.logger.warn(`Impossible de vérifier l'utilisateur créé: ${userId}`, error);
       }
 
       this.logger.log(`Utilisateur créé avec l'ID: ${userId}`);
