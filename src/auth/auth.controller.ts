@@ -82,15 +82,22 @@ export class AuthController {
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
     try {
       const result = await this.authService.verifyOtp(verifyOtpDto);
+      
+      // Adapter la réponse selon si l'authentification automatique a réussi
+      const responseData: any = {
+        userId: result.userId,
+      };
+      
+      if (result.session) {
+        responseData.session = result.session;
+        responseData.user = result.user;
+        responseData.permissions = result.permissions;
+      }
+      
       return {
         success: true,
-        message: 'Utilisateur créé et connecté avec succès',
-        data: {
-          userId: result.userId,
-          session: result.session,
-          user: result.user,
-          permissions: result.permissions,
-        },
+        message: result.message,
+        data: responseData,
       };
     } catch (error) {
       this.logger.error('Erreur lors de la vérification OTP', error);

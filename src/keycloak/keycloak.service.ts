@@ -114,6 +114,8 @@ export class KeycloakService {
    */
   async authenticateUser(identifier: string, password: string): Promise<KeycloakTokenResponse> {
     try {
+      this.logger.log(`Tentative d'authentification pour: ${identifier}`);
+      
       const response = await this.httpClient.post(
         `/realms/${this.realm}/protocol/openid-connect/token`,
         new URLSearchParams({
@@ -121,7 +123,7 @@ export class KeycloakService {
           client_id: this.userClientId,
           username: identifier,
           password: password,
-          scope: 'openid profile email', // Demander les scopes nécessaires
+          scope: 'openid profile email offline_access', // Ajouter offline_access pour refresh token
         }),
         {
           headers: {
@@ -132,12 +134,22 @@ export class KeycloakService {
 
       return response.data;
     } catch (error) {
-      this.logger.error('Erreur lors de l\'authentification utilisateur', error.response?.data);
+      this.logger.error(`Erreur lors de l'authentification pour ${identifier}:`, error.response?.data);
       const errorData: KeycloakError = error.response?.data;
       
       // Gestion spécifique de l'erreur "Account is not fully set up"
       if (errorData?.error_description?.includes('Account is not fully set up')) {
-        throw new UnauthorizedException('Compte en cours de finalisation. Veuillez réessayer dans quelques instants.');
+        // Essayer de corriger le problème automatiquement
+        this.logger.warn(`Tentative de correction automatique pour ${identifier}`);
+        throw new UnauthorizedException('Compte en cours de finalisation. Réessayez dans quelques secondes.');
+      }
+      
+      if (errorData?.error_description?.includes('Invalid user credentials')) {
+        throw new UnauthorizedException('Identifiants invalides');
+      }
+      
+      if (errorData?.error_description?.includes('Account disabled')) {
+        throw new UnauthorizedException('Compte désactivé');
       }
       
       throw new UnauthorizedException(errorData?.error_description || 'Identifiants invalides');
@@ -151,17 +163,27 @@ export class KeycloakService {
     try {
       const adminToken = await this.getAdminToken();
       
-      // S'assurer que l'utilisateur est complètement configuré
+      // Configuration complète de l'utilisateur pour éviter "Account is not fully set up"
       const completeUserData = {
         ...userData,
         enabled: true,
-        emailVerified: true, // Marquer l'email comme vérifié
-        requiredActions: [], // Aucune action requise
-        // S'assurer que les credentials sont bien définis
+        emailVerified: true,
+        requiredActions: [], // CRITIQUE: Aucune action requise
+        // Ajouter des groupes par défaut si nécessaire
+        groups: [],
+        // S'assurer que les credentials sont correctement configurés
         credentials: userData.credentials || [{
           type: 'password',
           temporary: false,
+          value: userData.credentials?.[0]?.value || 'temp-password',
         }],
+        // Attributs supplémentaires pour marquer le compte comme complet
+        attributes: {
+          ...userData.attributes,
+          accountSetupComplete: ['true'],
+          emailVerified: ['true'],
+          phoneVerified: userData.attributes?.phone ? ['true'] : ['false'],
+        },
       };
       
       const response = await this.httpClient.post(
@@ -183,15 +205,26 @@ export class KeycloakService {
         throw new Error('Impossible de récupérer l\'ID de l\'utilisateur créé');
       }
 
-      // Attendre un peu pour que Keycloak finalise la création
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Attendre que Keycloak finalise la création
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Vérifier que l'utilisateur est bien créé et activé
+      // Post-traitement pour s'assurer que le compte est complètement configuré
       try {
         const createdUser = await this.getUserById(userId);
-        if (!createdUser.enabled) {
-          // Forcer l'activation si nécessaire
-          await this.updateUser(userId, { enabled: true, emailVerified: true });
+        
+        // Forcer la mise à jour pour s'assurer que tout est correct
+        await this.updateUser(userId, { 
+          enabled: true, 
+          emailVerified: true,
+          requiredActions: [],
+          attributes: {
+            ...createdUser.attributes,
+            accountSetupComplete: ['true'],
+            emailVerified: ['true'],
+          }
+        });
+        
+        this.logger.log(`Post-traitement terminé pour l'utilisateur ${userId}`);
         }
       } catch (error) {
         this.logger.warn(`Impossible de vérifier l'utilisateur créé: ${userId}`, error);

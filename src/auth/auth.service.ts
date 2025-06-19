@@ -143,20 +143,36 @@ export class AuthService {
       const identifier = email || phone;
       let tokenResponse;
       let retryCount = 0;
-      const maxRetries = 3;
+      const maxRetries = 5; // Augmenter le nombre de tentatives
       
       while (retryCount < maxRetries) {
         try {
+          // Attendre plus longtemps avant la première tentative
+          if (retryCount === 0) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+          
           tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
           break;
         } catch (error) {
           retryCount++;
+          this.logger.warn(`Tentative d'authentification ${retryCount}/${maxRetries} échouée pour ${identifier}:`, error.message);
+          
           if (retryCount >= maxRetries) {
             this.logger.error(`Impossible d'authentifier l'utilisateur après ${maxRetries} tentatives`, error);
-            throw new BadRequestException('Utilisateur créé mais impossible de se connecter automatiquement. Veuillez vous connecter manuellement.');
+            
+            // Retourner une réponse sans session automatique
+            return {
+              message: 'Utilisateur créé avec succès. Veuillez vous connecter manuellement.',
+              userId,
+              session: null,
+              user: null,
+              permissions: null,
+            };
           }
-          // Attendre avant de réessayer
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          
+          // Attendre progressivement plus longtemps entre les tentatives
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
         }
       }
       
