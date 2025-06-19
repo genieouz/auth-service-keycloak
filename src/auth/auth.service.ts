@@ -101,12 +101,12 @@ export class AuthService {
       const keycloakUser: KeycloakUser = {
         username: email || phone,
         email: email || undefined, // CRITIQUE: undefined pour téléphone uniquement
+        phone: phone || undefined, // Champ phone à la racine
         firstName: firstName,
         lastName: lastName,
         enabled: true,
         emailVerified: !!email, // Seulement si un vrai email est fourni
         attributes: {
-          ...(phone && { phone: [phone] }),
           ...(otpRecord.userData.birthDate && { birthDate: [otpRecord.userData.birthDate] }),
           ...(otpRecord.userData.gender && { gender: [otpRecord.userData.gender] }),
           ...(otpRecord.userData.address && { address: [otpRecord.userData.address] }),
@@ -270,7 +270,7 @@ export class AuthService {
     try {
       // Vérifier l'ancien mot de passe en tentant une authentification
       const user = await this.keycloakService.getUserById(userId);
-      const identifier = user.email || user.attributes?.phone?.[0];
+      const identifier = user.email || user.phone || user.attributes?.phone?.[0];
       
       if (!identifier) {
         throw new BadRequestException('Impossible de vérifier l\'identité de l\'utilisateur');
@@ -383,6 +383,7 @@ export class AuthService {
     const baseUser: KeycloakUser = {
       username: email || phone,
       email: email || undefined, // undefined pour téléphone uniquement
+      phone: phone || undefined, // Champ phone à la racine
       firstName: firstName,
       lastName: lastName,
       enabled: true,
@@ -391,9 +392,6 @@ export class AuthService {
 
     // Attributs personnalisés (seulement ce qui est nécessaire)
     const customAttributes: { [key: string]: string[] } = {};
-    
-    // Informations de contact
-    if (phone) customAttributes.phone = [phone];
     
     // Informations personnelles (optionnelles)
     if (otherData.birthDate) customAttributes.birthDate = [otherData.birthDate];
