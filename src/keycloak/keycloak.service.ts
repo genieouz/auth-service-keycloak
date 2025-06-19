@@ -216,7 +216,6 @@ export class KeycloakService {
         await this.updateUser(userId, { 
           enabled: true, 
           emailVerified: true,
-          requiredActions: [],
           attributes: {
             ...createdUser.attributes,
             accountSetupComplete: ['true'],
