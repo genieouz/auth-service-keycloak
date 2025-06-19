@@ -83,7 +83,13 @@ export class AuthService {
   /**
    * Vérifier le code OTP et créer l'utilisateur
    */
-  async verifyOtp(verifyOtpDto: VerifyOtpDto): Promise<{ message: string; userId: string }> {
+  async verifyOtp(verifyOtpDto: VerifyOtpDto): Promise<{
+    message: string;
+    userId: string;
+    session: any;
+    user: any;
+    permissions: any;
+  }> {
     try {
       // Vérifier le code OTP
       const otpRecord = await this.otpService.verifyOtp(verifyOtpDto);

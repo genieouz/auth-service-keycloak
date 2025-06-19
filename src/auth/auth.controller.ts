@@ -69,7 +69,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 201, 
     description: 'Utilisateur créé avec succès',
-    type: ApiResponseDto 
+    type: ApiResponseDto
   })
   @ApiResponse({ 
     status: 400, 
@@ -84,9 +84,12 @@ export class AuthController {
       const result = await this.authService.verifyOtp(verifyOtpDto);
       return {
         success: true,
-        message: result.message,
+        message: 'Utilisateur créé et connecté avec succès',
         data: {
           userId: result.userId,
+          session: result.session,
+          user: result.user,
+          permissions: result.permissions,
         },
       };
     } catch (error) {
