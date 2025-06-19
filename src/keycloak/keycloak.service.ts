@@ -161,34 +161,12 @@ export class KeycloakService {
     try {
       const adminToken = await this.getAdminToken();
       
-      const completeUserData = {
-        ...userData,
-        // CRITIQUE: Pour téléphone uniquement, email doit être undefined ou ""
-        email: userData.email || undefined,
-        enabled: true,
-        emailVerified: !!userData.email, // Seulement si un vrai email est fourni
-        requiredActions: [], // CRITIQUE: Aucune action requise
-        groups: [],
-        // S'assurer que firstName et lastName sont bien au niveau racine
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        credentials: userData.credentials || [{
-          type: 'password',
-          temporary: false,
-          value: userData.credentials?.[0]?.value || 'temp-password',
-        }],
-        attributes: {
-          ...userData.attributes,
-          accountSetupComplete: ['true'],
-          emailVerified: userData.email ? ['true'] : ['false'],
-          phoneVerified: userData.attributes?.phone ? ['true'] : ['false'],
-          accountType: [userData.email ? 'email' : 'phone'],
-        },
-      };
+      // Optimiser la structure pour Keycloak
+      const optimizedUserData = this.optimizeUserDataForKeycloak(userData);
       
       const response = await this.httpClient.post(
         `/admin/realms/${this.realm}/users`,
-        completeUserData,
+        optimizedUserData,
         {
           headers: {
             Authorization: `Bearer ${adminToken}`,
@@ -371,6 +349,7 @@ export class KeycloakService {
 
       const users: KeycloakUser[] = response.data;
       return users.length > 0 && users.some(user => 
+        user.phone === phone ||
         user.attributes?.phone?.includes(phone)
       );
     } catch (error) {
@@ -560,6 +539,7 @@ export class KeycloakService {
       // Sinon chercher par téléphone dans les attributs
       const users = await this.searchUsers(identifier);
       return users.find(user => 
+        user.phone === identifier ||
         user.attributes?.phone?.includes(identifier) ||
         user.username === identifier
       ) || null;
@@ -591,5 +571,48 @@ export class KeycloakService {
       this.logger.error(`Erreur lors de la déconnexion de l'utilisateur ${userId}`, error.response?.data);
       // Ne pas faire échouer la déconnexion si Keycloak échoue
     }
+  }
+
+  /**
+   * Optimiser les données utilisateur pour l'API Keycloak
+   */
+  private optimizeUserDataForKeycloak(userData: KeycloakUser): any {
+    // Structure optimisée pour Keycloak
+    const optimized: any = {
+      // Champs principaux (niveau racine - recommandé)
+      username: userData.username,
+      email: userData.email, // undefined si pas d'email
+      phone: userData.phone, // undefined si pas de téléphone
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      enabled: userData.enabled ?? true,
+      emailVerified: userData.emailVerified ?? false,
+      
+      // Configuration du compte
+      requiredActions: [], // Aucune action requise
+      groups: [], // Pas de groupes par défaut
+      
+      // Credentials
+      credentials: userData.credentials || [],
+    };
+
+    // Ajouter les attributs personnalisés seulement s'ils existent
+    if (userData.attributes && Object.keys(userData.attributes).length > 0) {
+      optimized.attributes = {
+        ...userData.attributes,
+        // Métadonnées de vérification
+        emailVerified: [userData.emailVerified ? 'true' : 'false'],
+        phoneVerified: [userData.phone ? 'true' : 'false'],
+      };
+    }
+
+    // Nettoyer les valeurs undefined
+    Object.keys(optimized).forEach(key => {
+      if (optimized[key] === undefined) {
+        delete optimized[key];
+      }
+    });
+
+    return optimized;
   }
 }

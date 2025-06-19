@@ -101,12 +101,12 @@ export class AuthService {
       const keycloakUser: KeycloakUser = {
         username: email || phone,
         email: email || undefined, // CRITIQUE: undefined pour téléphone uniquement
+        phone: phone || undefined, // Champ phone à la racine
         firstName: firstName,
         lastName: lastName,
         enabled: true,
         emailVerified: !!email, // Seulement si un vrai email est fourni
         attributes: {
-          ...(phone && { phone: [phone] }),
           ...(otpRecord.userData.birthDate && { birthDate: [otpRecord.userData.birthDate] }),
           ...(otpRecord.userData.gender && { gender: [otpRecord.userData.gender] }),
           ...(otpRecord.userData.address && { address: [otpRecord.userData.address] }),
@@ -270,7 +270,7 @@ export class AuthService {
     try {
       // Vérifier l'ancien mot de passe en tentant une authentification
       const user = await this.keycloakService.getUserById(userId);
-      const identifier = user.email || user.attributes?.phone?.[0];
+      const identifier = user.email || user.phone || user.attributes?.phone?.[0];
       
       if (!identifier) {
         throw new BadRequestException('Impossible de vérifier l\'identité de l\'utilisateur');
@@ -371,5 +371,67 @@ export class AuthService {
       this.logger.error('Erreur lors de la déconnexion', error);
       // Ne pas faire échouer la déconnexion côté client même si Keycloak échoue
     }
+  }
+
+  /**
+   * Construire un objet utilisateur optimisé pour Keycloak
+   */
+  private buildKeycloakUserObject(userData: any): KeycloakUser {
+    const { email, phone, password, firstName, lastName, ...otherData } = userData;
+    
+    // Champs principaux au niveau racine (recommandé par Keycloak)
+    const baseUser: KeycloakUser = {
+      username: email || phone,
+      email: email || undefined, // undefined pour téléphone uniquement
+      phone: phone || undefined, // Champ phone à la racine
+      firstName: firstName,
+      lastName: lastName,
+      enabled: true,
+      emailVerified: !!email,
+    };
+
+    // Attributs personnalisés (seulement ce qui est nécessaire)
+    const customAttributes: { [key: string]: string[] } = {};
+    
+    // Informations personnelles (optionnelles)
+    if (otherData.birthDate) customAttributes.birthDate = [otherData.birthDate];
+    if (otherData.gender) customAttributes.gender = [otherData.gender];
+    
+    // Adresse (optionnelle)
+    if (otherData.address) customAttributes.address = [otherData.address];
+    if (otherData.city) customAttributes.city = [otherData.city];
+    if (otherData.postalCode) customAttributes.postalCode = [otherData.postalCode];
+    if (otherData.country) customAttributes.country = [otherData.country];
+    
+    // Profession (optionnelle)
+    if (otherData.profession) customAttributes.profession = [otherData.profession];
+    
+    // Consentements (obligatoires)
+    customAttributes.acceptTerms = [otherData.acceptTerms.toString()];
+    customAttributes.acceptPrivacyPolicy = [otherData.acceptPrivacyPolicy.toString()];
+    
+    // Marketing (optionnel)
+    if (otherData.acceptMarketing !== undefined) {
+      customAttributes.acceptMarketing = [otherData.acceptMarketing.toString()];
+    }
+    
+    // Métadonnées du compte
+    customAttributes.registrationDate = [new Date().toISOString()];
+    customAttributes.accountType = [email ? 'email' : 'phone'];
+    customAttributes.accountSetupComplete = ['true'];
+    
+    // Ajouter les attributs seulement s'il y en a
+    if (Object.keys(customAttributes).length > 0) {
+      baseUser.attributes = customAttributes;
+    }
+
+    // Credentials
+    baseUser.credentials = [{
+      type: 'password',
+      value: password,
+      temporary: false,
+    }];
+
+    return baseUser;
   }
 }
