@@ -104,7 +104,7 @@ export class AuthService {
         firstName: firstName,
         lastName: lastName,
         enabled: true,
-        emailVerified: !!email,
+        emailVerified: !!email, // Seulement si un vrai email est fourni
         attributes: {
           ...(phone && { phone: [phone] }),
           ...(otpRecord.userData.birthDate && { birthDate: [otpRecord.userData.birthDate] }),
@@ -120,6 +120,8 @@ export class AuthService {
             acceptMarketing: [otpRecord.userData.acceptMarketing.toString()] 
           }),
           registrationDate: [new Date().toISOString()],
+          // Marquer le type de compte pour faciliter la gestion
+          accountType: [email ? 'email' : 'phone'],
         },
         credentials: [{
           type: 'password',
@@ -133,7 +135,12 @@ export class AuthService {
       
       this.logger.log(`Utilisateur créé avec succès: ${userId}`);
 
-      // Tentative d'authentification automatique après création
+      // Attendre un peu plus pour les comptes téléphone avant l'authentification
+      if (!email && phone) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      // Tentative d'authentification automatique après création  
       try {
         const identifier = email || phone;
         const authResult = await this.authenticateAndBuildResponse(identifier, password);
@@ -146,10 +153,10 @@ export class AuthService {
           permissions: authResult.permissions,
         };
       } catch (authError) {
-        this.logger.warn(`Authentification automatique échouée pour ${userId}, utilisateur créé mais non connecté`, authError);
+        this.logger.warn(`Authentification automatique échouée pour ${userId}:`, authError.message);
         
         return {
-          message: 'Utilisateur créé avec succès. Veuillez vous connecter.',
+          message: 'Utilisateur créé avec succès. Veuillez vous connecter dans quelques instants.',
           userId,
         };
       }
