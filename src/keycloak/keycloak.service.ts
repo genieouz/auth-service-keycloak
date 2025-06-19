@@ -349,7 +349,6 @@ export class KeycloakService {
 
       const users: KeycloakUser[] = response.data;
       return users.length > 0 && users.some(user => 
-        user.phone === phone ||
         user.attributes?.phone?.includes(phone)
       );
     } catch (error) {
@@ -539,7 +538,6 @@ export class KeycloakService {
       // Sinon chercher par téléphone dans les attributs
       const users = await this.searchUsers(identifier);
       return users.find(user => 
-        user.phone === identifier ||
         user.attributes?.phone?.includes(identifier) ||
         user.username === identifier
       ) || null;
@@ -582,7 +580,6 @@ export class KeycloakService {
       // Champs principaux (niveau racine - recommandé)
       username: userData.username,
       email: userData.email, // undefined si pas d'email
-      phone: userData.phone, // undefined si pas de téléphone
       firstName: userData.firstName,
       lastName: userData.lastName,
       enabled: userData.enabled ?? true,
@@ -602,7 +599,7 @@ export class KeycloakService {
         ...userData.attributes,
         // Métadonnées de vérification
         emailVerified: [userData.emailVerified ? 'true' : 'false'],
-        phoneVerified: [userData.phone ? 'true' : 'false'],
+        phoneVerified: [userData.attributes.phone ? 'true' : 'false'],
       };
     }
 
