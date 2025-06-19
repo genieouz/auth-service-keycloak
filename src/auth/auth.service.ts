@@ -9,6 +9,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from '../otp/dto/verify-otp.dto';
 import { KeycloakUser, KeycloakTokenResponse } from '../common/interfaces/keycloak.interface';
 import { SessionResponseDto, UserProfileDto, PermissionsDto } from '../common/dto/response.dto';
+import { UserMapperUtil } from '../common/utils/user-mapper.util';
 
 @Injectable()
 export class AuthService {
@@ -225,19 +226,11 @@ export class AuthService {
     };
 
     // Construire le profil utilisateur
-    const user: UserProfileDto = {
-      id: userDetails.id,
-      username: userDetails.username,
-      email: userDetails.email,
-      firstName: userDetails.firstName,
-      lastName: userDetails.lastName,
-      enabled: userDetails.enabled,
-      emailVerified: userDetails.emailVerified,
-      roles: decodedToken.realm_access?.roles || [],
-      clientRoles: decodedToken.resource_access?.[process.env.KEYCLOAK_USER_CLIENT_ID]?.roles || [],
-      attributes: userDetails.attributes || {},
-      registrationDate: userDetails.attributes?.registrationDate?.[0] || new Date().toISOString(),
-    };
+    const user: UserProfileDto = UserMapperUtil.mapKeycloakUserToProfile(
+      userDetails,
+      decodedToken.realm_access?.roles || [],
+      decodedToken.resource_access?.[process.env.KEYCLOAK_USER_CLIENT_ID]?.roles || []
+    );
 
     // Calculer les permissions
     const permissions: PermissionsDto = {

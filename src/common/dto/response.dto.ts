@@ -67,8 +67,8 @@ export class UserProfileDto {
   @ApiProperty({ description: 'Nom d\'utilisateur' })
   username: string;
 
-  @ApiProperty({ description: 'Adresse email' })
-  email: string;
+  @ApiProperty({ description: 'Adresse email', required: false })
+  email?: string;
 
   @ApiProperty({ description: 'Prénom' })
   firstName: string;
@@ -88,11 +88,49 @@ export class UserProfileDto {
   @ApiProperty({ description: 'Rôles client' })
   clientRoles: string[];
 
-  @ApiProperty({ description: 'Attributs utilisateur' })
-  attributes: any;
-
   @ApiProperty({ description: 'Date d\'inscription' })
   registrationDate: string;
+
+  // Attributs aplatis pour une meilleure expérience développeur
+  @ApiProperty({ description: 'Numéro de téléphone', required: false })
+  phone?: string;
+
+  @ApiProperty({ description: 'Date de naissance (YYYY-MM-DD)', required: false })
+  birthDate?: string;
+
+  @ApiProperty({ description: 'Genre (M/F/Autre)', required: false })
+  gender?: string;
+
+  @ApiProperty({ description: 'Adresse', required: false })
+  address?: string;
+
+  @ApiProperty({ description: 'Ville', required: false })
+  city?: string;
+
+  @ApiProperty({ description: 'Code postal', required: false })
+  postalCode?: string;
+
+  @ApiProperty({ description: 'Pays', required: false })
+  country?: string;
+
+  @ApiProperty({ description: 'Profession', required: false })
+  profession?: string;
+
+  @ApiProperty({ description: 'Acceptation des conditions générales' })
+  acceptTerms: boolean;
+
+  @ApiProperty({ description: 'Acceptation de la politique de confidentialité' })
+  acceptPrivacyPolicy: boolean;
+
+  @ApiProperty({ description: 'Consentement marketing', required: false })
+  acceptMarketing?: boolean;
+
+  @ApiProperty({ description: 'Type de compte (email/phone)', required: false })
+  accountType?: string;
+
+  // Attributs personnalisés non mappés (pour extensibilité)
+  @ApiProperty({ description: 'Autres attributs personnalisés', required: false })
+  customAttributes?: { [key: string]: any };
 }
 
 export class PermissionsDto {

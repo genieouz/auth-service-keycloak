@@ -3,6 +3,8 @@ import { KeycloakService } from '../keycloak/keycloak.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { KeycloakUser } from '../common/interfaces/keycloak.interface';
+import { UserProfileDto } from '../common/dto/response.dto';
+import { UserMapperUtil } from '../common/utils/user-mapper.util';
 
 @Injectable()
 export class UsersService {
@@ -13,9 +15,10 @@ export class UsersService {
   /**
    * Récupérer un utilisateur par ID
    */
-  async getUserById(userId: string): Promise<KeycloakUser> {
+  async getUserById(userId: string): Promise<UserProfileDto> {
     try {
-      return await this.keycloakService.getUserById(userId);
+      const keycloakUser = await this.keycloakService.getUserById(userId);
+      return UserMapperUtil.mapKeycloakUserToProfile(keycloakUser);
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération de l'utilisateur ${userId}`, error);
       throw new NotFoundException('Utilisateur non trouvé');
@@ -26,7 +29,7 @@ export class UsersService {
    * Lister les utilisateurs avec pagination
    */
   async getUsers(query: GetUsersQueryDto): Promise<{
-    users: KeycloakUser[];
+    users: UserProfileDto[];
     total: number;
     page: number;
     limit: number;
@@ -42,8 +45,11 @@ export class UsersService {
         this.keycloakService.getUsersCount()
       ]);
       
+      // Mapper les utilisateurs Keycloak vers le format API
+      const mappedUsers = users.map(user => UserMapperUtil.mapKeycloakUserToProfile(user));
+      
       return {
-        users,
+        users: mappedUsers,
         total,
         page,
         limit,
@@ -58,40 +64,16 @@ export class UsersService {
   /**
    * Mettre à jour un utilisateur
    */
-  async updateUser(userId: string, updateUserDto: UpdateUserDto): Promise<KeycloakUser> {
+  async updateUser(userId: string, updateUserDto: UpdateUserDto): Promise<UserProfileDto> {
     try {
-      // Préparer les données pour Keycloak
-      const keycloakUserData: Partial<KeycloakUser> = {
-        email: updateUserDto.email,
-        firstName: updateUserDto.firstName,
-        lastName: updateUserDto.lastName,
-        enabled: updateUserDto.enabled,
-      };
-
-      // Construire les attributs utilisateur
-      const attributes: { [key: string]: string[] } = {};
-      
-      if (updateUserDto.phone) attributes.phone = [updateUserDto.phone];
-      if (updateUserDto.birthDate) attributes.birthDate = [updateUserDto.birthDate];
-      if (updateUserDto.gender) attributes.gender = [updateUserDto.gender];
-      if (updateUserDto.address) attributes.address = [updateUserDto.address];
-      if (updateUserDto.city) attributes.city = [updateUserDto.city];
-      if (updateUserDto.postalCode) attributes.postalCode = [updateUserDto.postalCode];
-      if (updateUserDto.country) attributes.country = [updateUserDto.country];
-      if (updateUserDto.profession) attributes.profession = [updateUserDto.profession];
-      if (updateUserDto.acceptMarketing !== undefined) {
-        attributes.acceptMarketing = [updateUserDto.acceptMarketing.toString()];
-      }
-      
-      if (Object.keys(attributes).length > 0) {
-        keycloakUserData.attributes = attributes;
-      }
+      // Utiliser le mapper pour convertir les données
+      const keycloakUserData = UserMapperUtil.mapUpdateDtoToKeycloak(updateUserDto);
 
       // Mettre à jour dans Keycloak
       await this.keycloakService.updateUser(userId, keycloakUserData);
       
       // Retourner l'utilisateur mis à jour
-      return await this.keycloakService.getUserById(userId);
+      return await this.getUserById(userId);
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de l'utilisateur ${userId}`, error);
       throw error;
@@ -127,9 +109,10 @@ export class UsersService {
   /**
    * Rechercher des utilisateurs
    */
-  async searchUsers(query: string): Promise<KeycloakUser[]> {
+  async searchUsers(query: string): Promise<UserProfileDto[]> {
     try {
-      return await this.keycloakService.searchUsers(query);
+      const keycloakUsers = await this.keycloakService.searchUsers(query);
+      return keycloakUsers.map(user => UserMapperUtil.mapKeycloakUserToProfile(user));
     } catch (error) {
       this.logger.error(`Erreur lors de la recherche d'utilisateurs: ${query}`, error);
       throw error;
