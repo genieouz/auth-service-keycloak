@@ -121,15 +121,14 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto) {
     try {
-      const tokenData = await this.authService.login(loginDto);
+      const result = await this.authService.login(loginDto);
       return {
         success: true,
-        message: 'Connexion réussie',
+        message: result.message,
         data: {
-          access_token: tokenData.access_token,
-          token_type: tokenData.token_type,
-          expires_in: tokenData.expires_in,
-          scope: tokenData.scope,
+          session: result.session,
+          user: result.user,
+          permissions: result.permissions,
         },
       };
     } catch (error) {

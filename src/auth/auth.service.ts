@@ -8,6 +8,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from '../otp/dto/verify-otp.dto';
 import { KeycloakUser, KeycloakTokenResponse } from '../common/interfaces/keycloak.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
   constructor(
     private readonly otpService: OtpService,
     private readonly keycloakService: KeycloakService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -132,9 +134,28 @@ export class AuthService {
       
       this.logger.log(`Utilisateur créé avec succès: ${userId}`);
       
+      // Authentifier automatiquement l'utilisateur après création
+      const identifier = email || phone;
+      const tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
+      
+      // Récupérer les informations complètes de l'utilisateur
+      const userProfile = await this.keycloakService.getUserById(userId);
+      
+      // Calculer les permissions
+      const permissions = this.calculatePermissions(userProfile);
+      
+      // Formater la session
+      const session = this.formatSessionResponse(tokenResponse);
+      
+      // Formater le profil utilisateur
+      const user = this.formatUserProfile(userProfile);
+      
       return {
         message: 'Utilisateur créé avec succès',
         userId,
+        session,
+        user,
+        permissions,
       };
     } catch (error) {
       this.logger.error('Erreur lors de la vérification OTP', error);
@@ -145,7 +166,12 @@ export class AuthService {
   /**
    * Connecter un utilisateur
    */
-  async login(loginDto: LoginDto): Promise<KeycloakTokenResponse> {
+  async login(loginDto: LoginDto): Promise<{
+    message: string;
+    session: any;
+    user: any;
+    permissions: any;
+  }> {
     const { email, phone, password } = loginDto;
     
     if (!email && !phone) {
@@ -157,15 +183,117 @@ export class AuthService {
     try {
       const tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
       
+      // Décoder le token pour obtenir l'ID utilisateur
+      const decodedToken = this.decodeToken(tokenResponse.access_token);
+      const userId = decodedToken.sub;
+      
+      // Récupérer les informations complètes de l'utilisateur
+      const userProfile = await this.keycloakService.getUserById(userId);
+      
+      // Calculer les permissions
+      const permissions = this.calculatePermissions(userProfile);
+      
+      // Formater la session
+      const session = this.formatSessionResponse(tokenResponse);
+      
+      // Formater le profil utilisateur
+      const user = this.formatUserProfile(userProfile);
+      
       this.logger.log(`Connexion réussie pour l'utilisateur: ${identifier}`);
       
-      return tokenResponse;
+      return {
+        message: 'Connexion réussie',
+        session,
+        user,
+        permissions,
+      };
     } catch (error) {
       this.logger.error('Erreur lors de la connexion', error);
       throw error;
     }
   }
 
+  /**
+   * Décoder un token JWT sans vérification (pour extraire les claims)
+   */
+  private decodeToken(token: string): any {
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(Buffer.from(payload, 'base64').toString());
+    } catch (error) {
+      throw new BadRequestException('Token invalide');
+    }
+  }
+
+  /**
+   * Calculer les permissions d'un utilisateur
+   */
+  private calculatePermissions(user: KeycloakUser): any {
+    // Récupérer les rôles depuis les attributs ou une logique métier
+    const roles = user.attributes?.roles || [];
+    
+    return {
+      canManageUsers: roles.includes('admin') || roles.includes('user_manager'),
+      canViewUsers: roles.includes('admin') || roles.includes('moderator') || roles.includes('user_manager'),
+      isAdmin: roles.includes('admin'),
+      isModerator: roles.includes('moderator'),
+      isUser: true, // Tous les utilisateurs authentifiés sont des "users"
+    };
+  }
+
+  /**
+   * Formater la réponse de session
+   */
+  private formatSessionResponse(tokenResponse: KeycloakTokenResponse): any {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + (tokenResponse.expires_in * 1000));
+    const remainingTime = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
+    const isExpiringSoon = remainingTime < 300; // Moins de 5 minutes
+
+    return {
+      access_token: tokenResponse.access_token,
+      token_type: tokenResponse.token_type || 'Bearer',
+      expires_in: tokenResponse.expires_in,
+      refresh_token: tokenResponse.refresh_token,
+      scope: tokenResponse.scope,
+      issuedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      remainingTime,
+      isExpiringSoon,
+      audience: ['account', this.configService.get('KEYCLOAK_USER_CLIENT_ID')],
+    };
+  }
+
+  /**
+   * Formater le profil utilisateur
+   */
+  private formatUserProfile(user: KeycloakUser): any {
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      enabled: user.enabled,
+      emailVerified: user.emailVerified,
+      roles: user.attributes?.roles || [],
+      clientRoles: user.attributes?.clientRoles || [],
+      attributes: {
+        phone: user.attributes?.phone?.[0],
+        birthDate: user.attributes?.birthDate?.[0],
+        gender: user.attributes?.gender?.[0],
+        address: user.attributes?.address?.[0],
+        city: user.attributes?.city?.[0],
+        postalCode: user.attributes?.postalCode?.[0],
+        country: user.attributes?.country?.[0],
+        profession: user.attributes?.profession?.[0],
+        acceptTerms: user.attributes?.acceptTerms?.[0] === 'true',
+        acceptPrivacyPolicy: user.attributes?.acceptPrivacyPolicy?.[0] === 'true',
+        acceptMarketing: user.attributes?.acceptMarketing?.[0] === 'true',
+      },
+      registrationDate: user.attributes?.registrationDate?.[0],
+    };
+  }
   /**
    * Rafraîchir le token d'accès
    */
