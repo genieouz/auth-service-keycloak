@@ -47,7 +47,7 @@ export class NotificationService {
       this.logger.log(`Envoi SMS vers ${smsData.to}`);
 
       const response = await this.httpClient.post('notifications/sms', {
-        to: smsData.to,
+        phone: smsData.to,
         message: smsData.message,
       });
 
@@ -120,8 +120,7 @@ export class NotificationService {
     
     return this.sendSms({
       to: phone,
-      message,
-      from: 'SenegalServices',
+      message
     });
   }
 
