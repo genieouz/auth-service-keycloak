@@ -235,6 +235,7 @@ export class KeycloakService {
       this.logger.error('Erreur lors de la création de l\'utilisateur', error.response?.data);
       throw new BadRequestException('Impossible de créer l\'utilisateur dans Keycloak');
     }
+    }
   }
 
   /**
