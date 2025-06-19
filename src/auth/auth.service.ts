@@ -372,4 +372,68 @@ export class AuthService {
       // Ne pas faire échouer la déconnexion côté client même si Keycloak échoue
     }
   }
+
+  /**
+   * Construire un objet utilisateur optimisé pour Keycloak
+   */
+  private buildKeycloakUserObject(userData: any): KeycloakUser {
+    const { email, phone, password, firstName, lastName, ...otherData } = userData;
+    
+    // Champs principaux au niveau racine (recommandé par Keycloak)
+    const baseUser: KeycloakUser = {
+      username: email || phone,
+      email: email || undefined, // undefined pour téléphone uniquement
+      firstName: firstName,
+      lastName: lastName,
+      enabled: true,
+      emailVerified: !!email,
+    };
+
+    // Attributs personnalisés (seulement ce qui est nécessaire)
+    const customAttributes: { [key: string]: string[] } = {};
+    
+    // Informations de contact
+    if (phone) customAttributes.phone = [phone];
+    
+    // Informations personnelles (optionnelles)
+    if (otherData.birthDate) customAttributes.birthDate = [otherData.birthDate];
+    if (otherData.gender) customAttributes.gender = [otherData.gender];
+    
+    // Adresse (optionnelle)
+    if (otherData.address) customAttributes.address = [otherData.address];
+    if (otherData.city) customAttributes.city = [otherData.city];
+    if (otherData.postalCode) customAttributes.postalCode = [otherData.postalCode];
+    if (otherData.country) customAttributes.country = [otherData.country];
+    
+    // Profession (optionnelle)
+    if (otherData.profession) customAttributes.profession = [otherData.profession];
+    
+    // Consentements (obligatoires)
+    customAttributes.acceptTerms = [otherData.acceptTerms.toString()];
+    customAttributes.acceptPrivacyPolicy = [otherData.acceptPrivacyPolicy.toString()];
+    
+    // Marketing (optionnel)
+    if (otherData.acceptMarketing !== undefined) {
+      customAttributes.acceptMarketing = [otherData.acceptMarketing.toString()];
+    }
+    
+    // Métadonnées du compte
+    customAttributes.registrationDate = [new Date().toISOString()];
+    customAttributes.accountType = [email ? 'email' : 'phone'];
+    customAttributes.accountSetupComplete = ['true'];
+    
+    // Ajouter les attributs seulement s'il y en a
+    if (Object.keys(customAttributes).length > 0) {
+      baseUser.attributes = customAttributes;
+    }
+
+    // Credentials
+    baseUser.credentials = [{
+      type: 'password',
+      value: password,
+      temporary: false,
+    }];
+
+    return baseUser;
+  }
 }
