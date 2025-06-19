@@ -116,12 +116,6 @@ export class KeycloakService {
     try {
       this.logger.log(`Tentative d'authentification pour: ${identifier}`);
       
-      // Attendre un peu plus longtemps pour les nouveaux comptes
-      const isNewAccount = identifier.startsWith('+');
-      if (isNewAccount) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
       const response = await this.httpClient.post(
         `/realms/${this.realm}/protocol/openid-connect/token`,
         new URLSearchParams({
@@ -145,34 +139,6 @@ export class KeycloakService {
       
       // Gestion spécifique de l'erreur "Account is not fully set up"
       if (errorData?.error_description?.includes('Account is not fully set up')) {
-        // Pour les comptes téléphone, essayer de corriger automatiquement
-        if (identifier.startsWith('+')) {
-          this.logger.warn(`Tentative de correction automatique pour le téléphone ${identifier}`);
-          
-          try {
-            // Trouver l'utilisateur et forcer la finalisation
-            const user = await this.findUserByIdentifier(identifier);
-            if (user) {
-              await this.updateUser(user.id, {
-                enabled: true,
-                emailVerified: false, // Pas d'email réel
-                attributes: {
-                  ...user.attributes,
-                  accountSetupComplete: ['true'],
-                  phoneVerified: ['true'],
-                  emailVerified: ['false'],
-                }
-              });
-              
-              // Réessayer l'authentification après correction
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              return this.authenticateUser(identifier, password);
-            }
-          } catch (fixError) {
-            this.logger.error(`Impossible de corriger automatiquement le compte ${identifier}`, fixError);
-          }
-        }
-        
         throw new UnauthorizedException('Compte en cours de finalisation. Veuillez réessayer dans quelques instants.');
       }
       
@@ -195,17 +161,17 @@ export class KeycloakService {
     try {
       const adminToken = await this.getAdminToken();
       
-      // Configuration spéciale pour les utilisateurs avec téléphone uniquement
-      const isPhoneOnly = !userData.email && userData.attributes?.phone;
-      
       const completeUserData = {
         ...userData,
-        // Pour les utilisateurs avec téléphone uniquement, utiliser le téléphone comme email fictif
-        email: userData.email || (isPhoneOnly ? `${userData.attributes.phone[0].replace('+', '')}@phone.local` : undefined),
+        // CRITIQUE: Pour téléphone uniquement, email doit être undefined ou ""
+        email: userData.email || undefined,
         enabled: true,
         emailVerified: !!userData.email, // Seulement si un vrai email est fourni
         requiredActions: [], // CRITIQUE: Aucune action requise
         groups: [],
+        // S'assurer que firstName et lastName sont bien au niveau racine
+        firstName: userData.firstName,
+        lastName: userData.lastName,
         credentials: userData.credentials || [{
           type: 'password',
           temporary: false,
@@ -216,10 +182,7 @@ export class KeycloakService {
           accountSetupComplete: ['true'],
           emailVerified: userData.email ? ['true'] : ['false'],
           phoneVerified: userData.attributes?.phone ? ['true'] : ['false'],
-          // Marquer explicitement le type de compte
-          accountType: [isPhoneOnly ? 'phone' : 'email'],
-          // Indiquer que c'est un email fictif si nécessaire
-          ...(isPhoneOnly && { emailIsFictional: ['true'] }),
+          accountType: [userData.email ? 'email' : 'phone'],
         },
       };
       
@@ -242,31 +205,8 @@ export class KeycloakService {
         throw new Error('Impossible de récupérer l\'ID de l\'utilisateur créé');
       }
 
-      // Attendre que Keycloak finalise la création
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Post-traitement spécial pour les comptes téléphone uniquement
-      try {
-        const createdUser = await this.getUserById(userId);
-        
-        // Mise à jour finale pour garantir la configuration complète
-        const finalUpdate: Partial<KeycloakUser> = {
-          enabled: true,
-          emailVerified: !!userData.email, // Seulement pour les vrais emails
-          attributes: {
-            ...createdUser.attributes,
-            accountSetupComplete: ['true'],
-            emailVerified: userData.email ? ['true'] : ['false'],
-            phoneVerified: userData.attributes?.phone ? ['true'] : ['false'],
-          }
-        };
-        
-        await this.updateUser(userId, finalUpdate);
-        
-        this.logger.log(`Post-traitement terminé pour l'utilisateur ${userId}`);
-      } catch (error) {
-        this.logger.warn(`Impossible de vérifier l'utilisateur créé: ${userId}`, error);
-      }
+      // Attendre que Keycloak finalise la création (plus court)
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       this.logger.log(`Utilisateur créé avec l'ID: ${userId}`);
       return userId;

@@ -100,7 +100,7 @@ export class AuthService {
       
       const keycloakUser: KeycloakUser = {
         username: email || phone,
-        email: email,
+        email: email || undefined, // CRITIQUE: undefined pour téléphone uniquement
         firstName: firstName,
         lastName: lastName,
         enabled: true,
@@ -120,7 +120,6 @@ export class AuthService {
             acceptMarketing: [otpRecord.userData.acceptMarketing.toString()] 
           }),
           registrationDate: [new Date().toISOString()],
-          // Marquer le type de compte pour faciliter la gestion
           accountType: [email ? 'email' : 'phone'],
         },
         credentials: [{
@@ -135,10 +134,8 @@ export class AuthService {
       
       this.logger.log(`Utilisateur créé avec succès: ${userId}`);
 
-      // Attendre un peu plus pour les comptes téléphone avant l'authentification
-      if (!email && phone) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
+      // Attendre que Keycloak finalise la création
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Tentative d'authentification automatique après création  
       try {
