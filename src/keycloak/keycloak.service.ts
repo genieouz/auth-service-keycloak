@@ -114,8 +114,6 @@ export class KeycloakService {
    */
   async authenticateUser(identifier: string, password: string): Promise<KeycloakTokenResponse> {
     try {
-      this.logger.log(`Tentative d'authentification pour: ${identifier}`);
-      
       const response = await this.httpClient.post(
         `/realms/${this.realm}/protocol/openid-connect/token`,
         new URLSearchParams({
@@ -123,7 +121,7 @@ export class KeycloakService {
           client_id: this.userClientId,
           username: identifier,
           password: password,
-          scope: 'openid profile email offline_access', // Ajouter offline_access pour refresh token
+          scope: 'openid profile email', // Demander les scopes nécessaires
         }),
         {
           headers: {
@@ -134,22 +132,12 @@ export class KeycloakService {
 
       return response.data;
     } catch (error) {
-      this.logger.error(`Erreur lors de l'authentification pour ${identifier}:`, error.response?.data);
+      this.logger.error('Erreur lors de l\'authentification utilisateur', error.response?.data);
       const errorData: KeycloakError = error.response?.data;
       
       // Gestion spécifique de l'erreur "Account is not fully set up"
       if (errorData?.error_description?.includes('Account is not fully set up')) {
-        // Essayer de corriger le problème automatiquement
-        this.logger.warn(`Tentative de correction automatique pour ${identifier}`);
-        throw new UnauthorizedException('Compte en cours de finalisation. Réessayez dans quelques secondes.');
-      }
-      
-      if (errorData?.error_description?.includes('Invalid user credentials')) {
-        throw new UnauthorizedException('Identifiants invalides');
-      }
-      
-      if (errorData?.error_description?.includes('Account disabled')) {
-        throw new UnauthorizedException('Compte désactivé');
+        throw new UnauthorizedException('Compte en cours de finalisation. Veuillez réessayer dans quelques instants.');
       }
       
       throw new UnauthorizedException(errorData?.error_description || 'Identifiants invalides');
@@ -225,7 +213,6 @@ export class KeycloakService {
         });
         
         this.logger.log(`Post-traitement terminé pour l'utilisateur ${userId}`);
-        }
       } catch (error) {
         this.logger.warn(`Impossible de vérifier l'utilisateur créé: ${userId}`, error);
       }
@@ -312,6 +299,7 @@ export class KeycloakService {
       return users.length > 0 ? 1000 : 0; // Estimation grossière
     }
   }
+
   /**
    * Rechercher des utilisateurs par critères (optimisé)
    */
