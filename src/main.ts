@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -59,6 +61,21 @@ async function bootstrap() {
       operationsSorter: 'alpha',
     },
   });
+
+  // Générer le fichier swagger.json
+  try {
+    // Créer le répertoire dist s'il n'existe pas
+    const distDir = join(process.cwd(), 'dist');
+    mkdirSync(distDir, { recursive: true });
+    
+    // Écrire le fichier swagger.json
+    const swaggerPath = join(distDir, 'swagger.json');
+    writeFileSync(swaggerPath, JSON.stringify(document, null, 2), 'utf8');
+    
+    console.log(`📄 Documentation Swagger générée: ${swaggerPath}`);
+  } catch (error) {
+    console.error('❌ Erreur lors de la génération du fichier swagger.json:', error);
+  }
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
