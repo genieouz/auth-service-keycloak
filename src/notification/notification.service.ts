@@ -237,4 +237,62 @@ export class NotificationService {
       from: 'security@senegalservices.com',
     });
   }
+
+  /**
+   * Envoyer un email de bienvenue avec mot de passe temporaire
+   */
+  async sendWelcomeEmail(email: string, firstName: string, temporaryPassword: string): Promise<NotificationResponse> {
+    const subject = 'Bienvenue sur SenegalServices - Vos informations de connexion';
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #1e40af; margin: 0;">🎉 Bienvenue sur SenegalServices</h1>
+          <p style="color: #64748b; margin: 5px 0;">"Dalal ak diam ci Guichet unique"</p>
+        </div>
+        
+        <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #0369a1; margin-top: 0;">Bonjour ${firstName},</h2>
+          <p>Votre compte SenegalServices a été créé avec succès ! Vous pouvez maintenant accéder à tous nos services administratifs en ligne.</p>
+        </div>
+        
+        <div style="background-color: #fefce8; border: 1px solid #eab308; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="color: #a16207; margin-top: 0;">🔐 Vos informations de connexion :</h3>
+          <p><strong>Email :</strong> ${email}</p>
+          <p><strong>Mot de passe temporaire :</strong> <code style="background-color: #fbbf24; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${temporaryPassword}</code></p>
+        </div>
+        
+        <div style="background-color: #fef2f2; border: 1px solid #f87171; border-radius: 8px; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>⚠️ Important :</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Ce mot de passe est temporaire et doit être changé lors de votre première connexion</li>
+            <li>Gardez ces informations confidentielles</li>
+            <li>Connectez-vous dès que possible pour sécuriser votre compte</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'https://senegalservices.com'}/login" 
+             style="background-color: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Se connecter maintenant
+          </a>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <p style="color: #64748b; font-size: 14px;">
+            Simplifiez vos démarches administratives avec SenegalServices
+          </p>
+          <p style="color: #64748b; font-size: 12px;">
+            © 2024 SenegalServices - Service d'authentification sécurisé
+          </p>
+        </div>
+      </div>
+    `;
+    
+    return this.sendEmail({
+      to: email,
+      subject,
+      message,
+      from: 'welcome@senegalservices.com',
+    });
+  }
 }
