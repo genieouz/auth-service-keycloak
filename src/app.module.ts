@@ -9,6 +9,7 @@ import { OtpModule } from "./otp/otp.module";
 import { UsersModule } from "./users/users.module";
 import { KeycloakModule } from "./keycloak/keycloak.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
+import { RolesModule } from "./roles/roles.module";
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
     UsersModule,
     KeycloakModule,
     NotificationModule,
+    RolesModule,
   ],
   providers: [
     {

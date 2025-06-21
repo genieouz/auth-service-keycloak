@@ -616,6 +616,258 @@ export class KeycloakService {
   }
 
   /**
+   * Retirer des rôles d'un utilisateur
+   */
+  async removeRolesFromUser(userId: string, roles: string[]): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      // Récupérer les rôles disponibles dans le realm
+      const availableRoles = await this.getRealmRoles();
+      
+      // Filtrer les rôles valides
+      const validRoles = roles.filter(roleName => 
+        availableRoles.some(role => role.name === roleName)
+      );
+      
+      if (validRoles.length === 0) {
+        this.logger.warn(`Aucun rôle valide trouvé parmi: ${roles.join(', ')}`);
+        return;
+      }
+      
+      // Mapper les noms de rôles vers les objets rôles
+      const rolesToRemove = validRoles.map(roleName => 
+        availableRoles.find(role => role.name === roleName)
+      ).filter(role => role !== undefined);
+      
+      // Retirer les rôles
+      await this.httpClient.delete(
+        `/admin/realms/${this.realm}/users/${userId}/role-mappings/realm`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+          data: rolesToRemove,
+        }
+      );
+      
+      this.logger.log(`Rôles retirés de l'utilisateur ${userId}: ${validRoles.join(', ')}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors du retrait des rôles pour ${userId}`, error.response?.data);
+      throw new BadRequestException('Impossible de retirer les rôles');
+    }
+  }
+
+  /**
+   * Récupérer les rôles d'un utilisateur
+   */
+  async getUserRoles(userId: string): Promise<any[]> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/users/${userId}/role-mappings/realm`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération des rôles pour ${userId}`, error.response?.data);
+      throw new BadRequestException('Impossible de récupérer les rôles de l\'utilisateur');
+    }
+  }
+
+  /**
+   * Créer un rôle dans Keycloak
+   */
+  async createRole(roleData: any): Promise<string> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.post(
+        `/admin/realms/${this.realm}/roles`,
+        roleData,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      // Récupérer l'ID du rôle créé
+      const createdRole = await this.getRoleByName(roleData.name);
+      return createdRole?.id || roleData.name;
+    } catch (error) {
+      this.logger.error('Erreur lors de la création du rôle', error.response?.data);
+      throw new BadRequestException('Impossible de créer le rôle');
+    }
+  }
+
+  /**
+   * Récupérer un rôle par nom
+   */
+  async getRoleByName(roleName: string): Promise<any> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/roles/${roleName}`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      this.logger.error(`Erreur lors de la récupération du rôle ${roleName}`, error.response?.data);
+      throw new BadRequestException('Impossible de récupérer le rôle');
+    }
+  }
+
+  /**
+   * Mettre à jour un rôle
+   */
+  async updateRole(roleName: string, roleData: any): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      await this.httpClient.put(
+        `/admin/realms/${this.realm}/roles/${roleName}`,
+        roleData,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      this.logger.log(`Rôle mis à jour: ${roleName}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour du rôle ${roleName}`, error.response?.data);
+      throw new BadRequestException('Impossible de mettre à jour le rôle');
+    }
+  }
+
+  /**
+   * Supprimer un rôle
+   */
+  async deleteRole(roleName: string): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      await this.httpClient.delete(
+        `/admin/realms/${this.realm}/roles/${roleName}`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+      
+      this.logger.log(`Rôle supprimé: ${roleName}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression du rôle ${roleName}`, error.response?.data);
+      throw new BadRequestException('Impossible de supprimer le rôle');
+    }
+  }
+
+  /**
+   * Récupérer les utilisateurs ayant un rôle spécifique
+   */
+  async getUsersWithRole(roleName: string): Promise<any[]> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/roles/${roleName}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération des utilisateurs avec le rôle ${roleName}`, error.response?.data);
+      return [];
+    }
+  }
+
+  /**
+   * Ajouter des rôles composites
+   */
+  async addCompositeRoles(parentRoleName: string, childRoleNames: string[]): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      // Récupérer les objets rôles enfants
+      const availableRoles = await this.getRealmRoles();
+      const childRoles = childRoleNames.map(roleName => 
+        availableRoles.find(role => role.name === roleName)
+      ).filter(role => role !== undefined);
+      
+      await this.httpClient.post(
+        `/admin/realms/${this.realm}/roles/${parentRoleName}/composites`,
+        childRoles,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      this.logger.log(`Rôles composites ajoutés à ${parentRoleName}: ${childRoleNames.join(', ')}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'ajout des rôles composites à ${parentRoleName}`, error.response?.data);
+      throw new BadRequestException('Impossible d\'ajouter les rôles composites');
+    }
+  }
+
+  /**
+   * Retirer des rôles composites
+   */
+  async removeCompositeRoles(parentRoleName: string, childRoleNames: string[]): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      // Récupérer les objets rôles enfants
+      const availableRoles = await this.getRealmRoles();
+      const childRoles = childRoleNames.map(roleName => 
+        availableRoles.find(role => role.name === roleName)
+      ).filter(role => role !== undefined);
+      
+      await this.httpClient.delete(
+        `/admin/realms/${this.realm}/roles/${parentRoleName}/composites`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+          data: childRoles,
+        }
+      );
+      
+      this.logger.log(`Rôles composites retirés de ${parentRoleName}: ${childRoleNames.join(', ')}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors du retrait des rôles composites de ${parentRoleName}`, error.response?.data);
+      throw new BadRequestException('Impossible de retirer les rôles composites');
+    }
+  }
+  /**
    * Récupérer les rôles disponibles dans le realm
    */
   async getRealmRoles(): Promise<any[]> {
