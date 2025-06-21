@@ -34,6 +34,7 @@ export class Otp {
     acceptTerms: boolean;
     acceptPrivacyPolicy: boolean;
     acceptMarketing?: boolean;
+    customAttributes?: { [key: string]: string | string[] };
   };
 }
 
