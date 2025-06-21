@@ -10,6 +10,7 @@ import { UsersModule } from "./users/users.module";
 import { KeycloakModule } from "./keycloak/keycloak.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesModule } from "./roles/roles.module";
+import { PermissionsModule } from "./permissions/permissions.module";
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { RolesModule } from "./roles/roles.module";
     KeycloakModule,
     NotificationModule,
     RolesModule,
+    PermissionsModule,
   ],
   providers: [
     {
