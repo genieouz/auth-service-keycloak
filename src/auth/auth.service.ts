@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OtpService } from '../otp/otp.service';
 import { KeycloakService } from '../keycloak/keycloak.service';
 import { RegisterDto } from './dto/register.dto';
@@ -16,6 +17,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly otpService: OtpService,
     private readonly keycloakService: KeycloakService,
   ) {}
@@ -451,7 +453,8 @@ export class AuthService {
    * Envoyer un email de bienvenue avec mot de passe temporaire
    */
   private async sendWelcomeEmail(email: string, firstName: string, temporaryPassword: string): Promise<void> {
-    const NotificationService = require('../notification/notification.service').NotificationService;
+    // Importer dynamiquement le service de notification pour éviter les dépendances circulaires
+    const { NotificationService } = await import('../notification/notification.service');
     const notificationService = new NotificationService(this.configService);
     
     const subject = 'Bienvenue sur SenegalServices - Vos informations de connexion';

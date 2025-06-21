@@ -7,11 +7,13 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { OtpModule } from '../otp/otp.module';
 import { KeycloakModule } from '../keycloak/keycloak.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     OtpModule, 
     KeycloakModule,
+    NotificationModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
