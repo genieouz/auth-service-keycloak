@@ -7,15 +7,18 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyOtpDto } from '../otp/dto/verify-otp.dto';
 import { ApiResponseDto } from '../common/dto/response.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard, Role } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('authentification')
 @Controller('auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
@@ -101,6 +104,52 @@ export class AuthController {
       };
     } catch (error) {
       this.logger.error('Erreur lors de la vérification OTP', error);
+      throw error;
+    }
+  }
+
+  @Post('create-user')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ 
+    summary: 'Créer un utilisateur directement (Admin)',
+    description: 'Permet aux administrateurs de créer un utilisateur sans processus OTP. L\'utilisateur recevra un email avec un mot de passe temporaire.'
+  })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Utilisateur créé avec succès',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Données de création invalides' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
+  @ApiResponse({ 
+    status: 409, 
+    description: 'Utilisateur déjà existant' 
+  })
+  async createUser(@Body() createUserDto: CreateUserDto, @CurrentUser() currentUser: any) {
+    try {
+      const result = await this.authService.createUser(createUserDto);
+      
+      this.logger.log(`Utilisateur créé par admin ${currentUser.username}: ${result.userId}`);
+      
+      return {
+        success: true,
+        message: result.message,
+        data: {
+          userId: result.userId,
+          temporaryPassword: result.temporaryPassword,
+          passwordResetRequired: result.passwordResetRequired,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Erreur lors de la création d\'utilisateur par admin', error);
       throw error;
     }
   }

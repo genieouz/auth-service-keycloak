@@ -88,11 +88,69 @@ export class UserMapperUtil {
       attributes.acceptMarketing = [updateDto.acceptMarketing.toString()];
     }
 
+    // Ajouter les attributs personnalisés
+    if (updateDto.customAttributes) {
+      Object.keys(updateDto.customAttributes).forEach(key => {
+        const value = updateDto.customAttributes[key];
+        attributes[key] = Array.isArray(value) ? value : [value];
+      });
+    }
+
     if (Object.keys(attributes).length > 0) {
       keycloakData.attributes = attributes;
     }
 
     return keycloakData;
+  }
+
+  /**
+   * Convertit un CreateUserDto en format Keycloak
+   */
+  static mapCreateDtoToKeycloak(createDto: any, generatedPassword: string): KeycloakUser {
+    const keycloakUser: KeycloakUser = {
+      username: createDto.email,
+      email: createDto.email,
+      firstName: createDto.firstName,
+      lastName: createDto.lastName,
+      enabled: true,
+      emailVerified: true, // Email considéré comme vérifié pour les créations admin
+      credentials: [{
+        type: 'password',
+        value: generatedPassword,
+        temporary: createDto.requirePasswordReset !== false, // Par défaut true
+      }],
+    };
+
+    // Construire les attributs
+    const attributes: { [key: string]: string[] } = {};
+    
+    if (createDto.phone) attributes.phone = [createDto.phone];
+    if (createDto.birthDate) attributes.birthDate = [createDto.birthDate];
+    if (createDto.gender) attributes.gender = [createDto.gender];
+    if (createDto.address) attributes.address = [createDto.address];
+    if (createDto.city) attributes.city = [createDto.city];
+    if (createDto.postalCode) attributes.postalCode = [createDto.postalCode];
+    if (createDto.country) attributes.country = [createDto.country];
+    if (createDto.profession) attributes.profession = [createDto.profession];
+    
+    // Métadonnées du compte
+    attributes.registrationDate = [new Date().toISOString()];
+    attributes.accountType = ['admin_created'];
+    attributes.createdByAdmin = ['true'];
+    attributes.acceptTerms = ['true']; // Acceptation implicite pour les comptes admin
+    attributes.acceptPrivacyPolicy = ['true'];
+    
+    // Ajouter les attributs personnalisés
+    if (createDto.customAttributes) {
+      Object.keys(createDto.customAttributes).forEach(key => {
+        const value = createDto.customAttributes[key];
+        attributes[key] = Array.isArray(value) ? value : [value];
+      });
+    }
+    
+    keycloakUser.attributes = attributes;
+    
+    return keycloakUser;
   }
 
   /**

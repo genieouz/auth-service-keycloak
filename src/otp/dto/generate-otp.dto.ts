@@ -138,4 +138,12 @@ export class GenerateOtpDto {
   @IsBoolean()
   @Transform(({ value }) => value === true || value === 'true')
   acceptMarketing?: boolean = false;
+
+  @ApiProperty({ 
+    description: 'Attributs personnalisés de l\'application', 
+    example: { 'departement': 'IT', 'niveau_acces': 'standard' },
+    required: false 
+  })
+  @IsOptional()
+  customAttributes?: { [key: string]: string | string[] };
 }

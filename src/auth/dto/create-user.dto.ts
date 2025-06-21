@@ -1,34 +1,15 @@
-import { IsString, IsNotEmpty, IsOptional, IsEmail, Matches, MinLength, IsDateString, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEmail, Matches, IsDateString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
-export class RegisterDto {
+export class CreateUserDto {
   @ApiProperty({ 
-    description: 'Email de l\'utilisateur', 
-    example: 'user@example.com',
-    required: false 
+    description: 'Email de l\'utilisateur (obligatoire pour ce type de création)', 
+    example: 'admin@example.com'
   })
-  @IsOptional()
   @IsEmail({}, { message: 'Format d\'email invalide' })
-  email?: string;
-
-  @ApiProperty({ 
-    description: 'Numéro de téléphone de l\'utilisateur', 
-    example: '+221771234567',
-    required: false 
-  })
-  @IsOptional()
-  @Matches(/^\+221[0-9]{9}$/, { message: 'Format de téléphone invalide (ex: +221771234567)' })
-  phone?: string;
-
-  @ApiProperty({ 
-    description: 'Mot de passe de l\'utilisateur (minimum 8 caractères)', 
-    example: 'MonMotDePasse123!' 
-  })
-  @IsString()
-  @IsNotEmpty({ message: 'Le mot de passe est obligatoire' })
-  @MinLength(8, { message: 'Le mot de passe doit contenir au moins 8 caractères' })
-  password: string;
+  @IsNotEmpty({ message: 'L\'email est obligatoire' })
+  email: string;
 
   @ApiProperty({ 
     description: 'Prénom de l\'utilisateur', 
@@ -45,6 +26,15 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: 'Le nom de famille est obligatoire' })
   lastName: string;
+
+  @ApiProperty({ 
+    description: 'Numéro de téléphone de l\'utilisateur', 
+    example: '+221771234567',
+    required: false 
+  })
+  @IsOptional()
+  @Matches(/^\+221[0-9]{9}$/, { message: 'Format de téléphone invalide (ex: +221771234567)' })
+  phone?: string;
 
   @ApiProperty({ 
     description: 'Date de naissance (format ISO: YYYY-MM-DD)', 
@@ -113,31 +103,13 @@ export class RegisterDto {
   profession?: string;
 
   @ApiProperty({ 
-    description: 'Acceptation des conditions générales', 
-    example: true 
-  })
-  @IsBoolean({ message: 'L\'acceptation des conditions générales est requise' })
-  @Transform(({ value }) => value === true || value === 'true')
-  acceptTerms: boolean;
-
-  @ApiProperty({ 
-    description: 'Acceptation de la politique de confidentialité', 
-    example: true 
-  })
-  @IsBoolean({ message: 'L\'acceptation de la politique de confidentialité est requise' })
-  @Transform(({ value }) => value === true || value === 'true')
-  acceptPrivacyPolicy: boolean;
-
-  @ApiProperty({ 
-    description: 'Consentement pour recevoir des communications marketing', 
-    example: false,
+    description: 'Rôles à assigner à l\'utilisateur', 
+    example: ['user', 'moderator'],
     required: false,
-    default: false
+    type: [String]
   })
   @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }) => value === true || value === 'true')
-  acceptMarketing?: boolean = false;
+  roles?: string[];
 
   @ApiProperty({ 
     description: 'Attributs personnalisés de l\'application', 
@@ -146,4 +118,15 @@ export class RegisterDto {
   })
   @IsOptional()
   customAttributes?: { [key: string]: string | string[] };
+
+  @ApiProperty({ 
+    description: 'Forcer la réinitialisation du mot de passe à la première connexion', 
+    example: true,
+    required: false,
+    default: true
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === true || value === 'true')
+  requirePasswordReset?: boolean = true;
 }

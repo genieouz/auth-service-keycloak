@@ -122,6 +122,8 @@ export class AuthService {
           }),
           registrationDate: [new Date().toISOString()],
           accountType: [email ? 'email' : 'phone'],
+          // Ajouter les attributs personnalisés s'ils existent
+          ...(otpRecord.userData.customAttributes && this.processCustomAttributes(otpRecord.userData.customAttributes)),
         },
         credentials: [{
           type: 'password',
@@ -161,6 +163,62 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Erreur lors de la vérification OTP', error);
       throw error;
+    }
+  }
+
+  /**
+   * Créer un utilisateur directement (sans OTP) - réservé aux administrateurs
+   */
+  async createUser(createUserDto: any): Promise<{ 
+    message: string; 
+    userId: string; 
+    temporaryPassword: string;
+    passwordResetRequired: boolean;
+  }> {
+    try {
+      // Vérifier si l'utilisateur existe déjà
+      const userExists = await this.keycloakService.userExists(createUserDto.email);
+      
+      if (userExists) {
+        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      }
+
+      // Générer un mot de passe temporaire sécurisé
+      const temporaryPassword = this.generateSecurePassword();
+      
+      // Utiliser le mapper pour créer l'objet Keycloak
+      const keycloakUser = UserMapperUtil.mapCreateDtoToKeycloak(createUserDto, temporaryPassword);
+      
+      // Créer l'utilisateur dans Keycloak
+      const userId = await this.keycloakService.createUser(keycloakUser);
+      
+      // Assigner les rôles si spécifiés
+      if (createUserDto.roles && createUserDto.roles.length > 0) {
+        await this.keycloakService.assignRolesToUser(userId, createUserDto.roles);
+      }
+      
+      // Envoyer l'email avec le mot de passe temporaire
+      try {
+        await this.sendWelcomeEmail(createUserDto.email, createUserDto.firstName, temporaryPassword);
+      } catch (emailError) {
+        this.logger.error('Erreur lors de l\'envoi de l\'email de bienvenue', emailError);
+        // Ne pas faire échouer la création si l'email échoue
+      }
+      
+      this.logger.log(`Utilisateur créé par admin avec succès: ${userId}`);
+      
+      return {
+        message: 'Utilisateur créé avec succès. Un email avec les informations de connexion a été envoyé.',
+        userId,
+        temporaryPassword: process.env.NODE_ENV === 'development' ? temporaryPassword : '***',
+        passwordResetRequired: createUserDto.requirePasswordReset !== false,
+      };
+    } catch (error) {
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Erreur lors de la création d\'utilisateur', error);
+      throw new BadRequestException('Erreur lors de la création de l\'utilisateur');
     }
   }
 
@@ -364,6 +422,104 @@ export class AuthService {
       this.logger.error('Erreur lors de la déconnexion', error);
       // Ne pas faire échouer la déconnexion côté client même si Keycloak échoue
     }
+  }
+
+  /**
+   * Générer un mot de passe sécurisé
+   */
+  private generateSecurePassword(): string {
+    const length = 12;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+    
+    // Assurer au moins un caractère de chaque type
+    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Majuscule
+    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Minuscule
+    password += '0123456789'[Math.floor(Math.random() * 10)]; // Chiffre
+    password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // Caractère spécial
+    
+    // Compléter avec des caractères aléatoires
+    for (let i = password.length; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)];
+    }
+    
+    // Mélanger les caractères
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+
+  /**
+   * Envoyer un email de bienvenue avec mot de passe temporaire
+   */
+  private async sendWelcomeEmail(email: string, firstName: string, temporaryPassword: string): Promise<void> {
+    const NotificationService = require('../notification/notification.service').NotificationService;
+    const notificationService = new NotificationService(this.configService);
+    
+    const subject = 'Bienvenue sur SenegalServices - Vos informations de connexion';
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #1e40af; margin: 0;">🎉 Bienvenue sur SenegalServices</h1>
+          <p style="color: #64748b; margin: 5px 0;">"Dalal ak diam ci Guichet unique"</p>
+        </div>
+        
+        <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #0369a1; margin-top: 0;">Bonjour ${firstName},</h2>
+          <p>Votre compte SenegalServices a été créé avec succès ! Vous pouvez maintenant accéder à tous nos services administratifs en ligne.</p>
+        </div>
+        
+        <div style="background-color: #fefce8; border: 1px solid #eab308; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="color: #a16207; margin-top: 0;">🔐 Vos informations de connexion :</h3>
+          <p><strong>Email :</strong> ${email}</p>
+          <p><strong>Mot de passe temporaire :</strong> <code style="background-color: #fbbf24; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${temporaryPassword}</code></p>
+        </div>
+        
+        <div style="background-color: #fef2f2; border: 1px solid #f87171; border-radius: 8px; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>⚠️ Important :</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Ce mot de passe est temporaire et doit être changé lors de votre première connexion</li>
+            <li>Gardez ces informations confidentielles</li>
+            <li>Connectez-vous dès que possible pour sécuriser votre compte</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL || 'https://senegalservices.com'}/login" 
+             style="background-color: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Se connecter maintenant
+          </a>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <p style="color: #64748b; font-size: 14px;">
+            Simplifiez vos démarches administratives avec SenegalServices
+          </p>
+          <p style="color: #64748b; font-size: 12px;">
+            © 2024 SenegalServices - Service d'authentification sécurisé
+          </p>
+        </div>
+      </div>
+    `;
+    
+    await notificationService.sendEmail({
+      to: email,
+      subject,
+      message,
+      from: 'welcome@senegalservices.com',
+    });
+  }
+
+  /**
+   * Traiter les attributs personnalisés pour Keycloak
+   */
+  private processCustomAttributes(customAttributes: { [key: string]: string | string[] }): { [key: string]: string[] } {
+    const processed: { [key: string]: string[] } = {};
+    
+    Object.keys(customAttributes).forEach(key => {
+      const value = customAttributes[key];
+      processed[key] = Array.isArray(value) ? value : [value];
+    });
+    
+    return processed;
   }
 
   /**

@@ -572,6 +572,73 @@ export class KeycloakService {
   }
 
   /**
+   * Assigner des rôles à un utilisateur
+   */
+  async assignRolesToUser(userId: string, roles: string[]): Promise<void> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      // Récupérer les rôles disponibles dans le realm
+      const availableRoles = await this.getRealmRoles();
+      
+      // Filtrer les rôles valides
+      const validRoles = roles.filter(roleName => 
+        availableRoles.some(role => role.name === roleName)
+      );
+      
+      if (validRoles.length === 0) {
+        this.logger.warn(`Aucun rôle valide trouvé parmi: ${roles.join(', ')}`);
+        return;
+      }
+      
+      // Mapper les noms de rôles vers les objets rôles
+      const rolesToAssign = validRoles.map(roleName => 
+        availableRoles.find(role => role.name === roleName)
+      ).filter(role => role !== undefined);
+      
+      // Assigner les rôles
+      await this.httpClient.post(
+        `/admin/realms/${this.realm}/users/${userId}/role-mappings/realm`,
+        rolesToAssign,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      this.logger.log(`Rôles assignés à l'utilisateur ${userId}: ${validRoles.join(', ')}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'assignation des rôles pour ${userId}`, error.response?.data);
+      throw new BadRequestException('Impossible d\'assigner les rôles');
+    }
+  }
+
+  /**
+   * Récupérer les rôles disponibles dans le realm
+   */
+  async getRealmRoles(): Promise<any[]> {
+    try {
+      const adminToken = await this.getAdminToken();
+      
+      const response = await this.httpClient.get(
+        `/admin/realms/${this.realm}/roles`,
+        {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des rôles', error.response?.data);
+      return [];
+    }
+  }
+
+  /**
    * Optimiser les données utilisateur pour l'API Keycloak
    */
   private optimizeUserDataForKeycloak(userData: KeycloakUser): any {
