@@ -140,7 +140,7 @@ export class UsersController {
     }
   }
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MODERATOR)
+  // @Roles(Role.ADMIN, Role.MODERATOR, Role.USER)
   @ApiOperation({ 
     summary: 'Récupérer un utilisateur par ID',
     description: 'Récupère les détails d\'un utilisateur spécifique par son identifiant unique'
