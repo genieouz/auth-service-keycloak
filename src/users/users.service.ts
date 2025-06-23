@@ -302,7 +302,8 @@ export class UsersService {
   }
 
   /**
-   * Rafraîchir les URLs d'avatar expirées pour tous les utilisateurs (tâche de maintenance)
+   * Rafraîchir les URLs d'avatar expirées pour tous les utilisateurs
+   * Méthode optimisée pour être appelée par des scripts externes ou CronJobs Kubernetes
    */
   async refreshExpiredAvatarUrls(): Promise<{ updated: number; errors: number }> {
     let updated = 0;

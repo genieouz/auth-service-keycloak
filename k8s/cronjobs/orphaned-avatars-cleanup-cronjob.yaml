@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: orphaned-avatars-cleanup
+  namespace: senegalservices
+  labels:
+    app: senegalservices-auth
+    component: maintenance
+spec:
+  # Tous les dimanches à 3h du matin
+  schedule: "0 3 * * 0"
+  timeZone: "Africa/Dakar"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  startingDeadlineSeconds: 600  # 10 minutes max de retard
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: senegalservices-auth
+            component: cleanup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cleanup
+            image: senegalservices/auth-service:latest
+            command: ["node"]
+            args: ["dist/scripts/cleanup-orphaned-avatars.js"]
+            env:
+            - name: NODE_ENV
+              value: "production"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secrets
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secrets
+                  key: secret-key
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "50m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
