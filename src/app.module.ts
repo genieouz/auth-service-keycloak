@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { OtpModule } from "./otp/otp.module";
 import { UsersModule } from "./users/users.module";
 import { KeycloakModule } from "./keycloak/keycloak.module";
+import { StorageModule } from "./storage/storage.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesModule } from "./roles/roles.module";
 import { PermissionsModule } from "./permissions/permissions.module";
@@ -36,6 +37,7 @@ import { PermissionsModule } from "./permissions/permissions.module";
     UsersModule,
     KeycloakModule,
     NotificationModule,
+    StorageModule,
     RolesModule,
     PermissionsModule,
   ],

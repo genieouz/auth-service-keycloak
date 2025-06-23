@@ -128,6 +128,9 @@ export class UserProfileDto {
   @ApiProperty({ description: 'Type de compte (email/phone)', required: false })
   accountType?: string;
 
+  @ApiProperty({ description: 'URL de l\'avatar de l\'utilisateur', required: false })
+  avatarUrl?: string;
+
   // Attributs personnalisés non mappés (pour extensibilité)
   @ApiProperty({ description: 'Autres attributs personnalisés', required: false })
   customAttributes?: { [key: string]: any };

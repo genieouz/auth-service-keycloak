@@ -6,11 +6,15 @@ import {
   Param, 
   Body, 
   Query, 
+  Post,
+  UseInterceptors,
+  UploadedFile,
   HttpCode, 
   HttpStatus, 
   Logger,
   UseGuards
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { 
   ApiTags, 
   ApiOperation, 
@@ -18,11 +22,13 @@ import {
   ApiParam, 
   ApiQuery,
   ApiBody,
+  ApiConsumes,
   ApiBearerAuth
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
+import { UploadAvatarDto, AvatarResponseDto } from './dto/upload-avatar.dto';
 import { ApiResponseDto, PaginatedResponseDto } from '../common/dto/response.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard, Role } from '../common/guards/roles.guard';
@@ -139,6 +145,74 @@ export class UsersController {
       throw error;
     }
   }
+
+  @Post('me/avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiOperation({ 
+    summary: 'Uploader son avatar',
+    description: 'Upload et met à jour l\'avatar de l\'utilisateur connecté'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadAvatarDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Avatar uploadé avec succès',
+    type: AvatarResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Fichier invalide ou trop volumineux' 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Non authentifié' 
+  })
+  async uploadMyAvatar(@CurrentUser() user: any, @UploadedFile() file: Express.Multer.File) {
+    try {
+      if (!file) {
+        throw new BadRequestException('Aucun fichier fourni');
+      }
+
+      const result = await this.usersService.uploadAvatar(user.userId, file);
+      return {
+        success: true,
+        message: 'Avatar uploadé avec succès',
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'upload d'avatar pour ${user.userId}`, error);
+      throw error;
+    }
+  }
+
+  @Delete('me/avatar')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Supprimer son avatar',
+    description: 'Supprime l\'avatar de l\'utilisateur connecté'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Avatar supprimé avec succès',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Non authentifié' 
+  })
+  async deleteMyAvatar(@CurrentUser() user: any) {
+    try {
+      await this.usersService.deleteAvatar(user.userId);
+      return {
+        success: true,
+        message: 'Avatar supprimé avec succès',
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression d'avatar pour ${user.userId}`, error);
+      throw error;
+    }
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ 
@@ -220,6 +294,58 @@ export class UsersController {
     }
   }
 
+  @Post(':id/avatar')
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiOperation({ 
+    summary: 'Uploader l\'avatar d\'un utilisateur (Admin)',
+    description: 'Upload et met à jour l\'avatar d\'un utilisateur spécifique'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'Identifiant unique de l\'utilisateur',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadAvatarDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Avatar uploadé avec succès',
+    type: AvatarResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Fichier invalide ou trop volumineux' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Utilisateur non trouvé' 
+  })
+  async uploadUserAvatar(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @CurrentUser() currentUser: any) {
+    try {
+      if (!file) {
+        throw new BadRequestException('Aucun fichier fourni');
+      }
+
+      const result = await this.usersService.uploadAvatar(id, file);
+      
+      this.logger.log(`Avatar uploadé par admin ${currentUser.username} pour l'utilisateur ${id}`);
+      
+      return {
+        success: true,
+        message: 'Avatar uploadé avec succès',
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'upload d'avatar pour l'utilisateur ${id}`, error);
+      throw error;
+    }
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -254,6 +380,47 @@ export class UsersController {
       };
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur ${id}`, error);
+      throw error;
+    }
+  }
+
+  @Delete(':id/avatar')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Supprimer l\'avatar d\'un utilisateur (Admin)',
+    description: 'Supprime l\'avatar d\'un utilisateur spécifique'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'Identifiant unique de l\'utilisateur',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Avatar supprimé avec succès',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Utilisateur non trouvé' 
+  })
+  async deleteUserAvatar(@Param('id') id: string, @CurrentUser() currentUser: any) {
+    try {
+      await this.usersService.deleteAvatar(id);
+      
+      this.logger.log(`Avatar supprimé par admin ${currentUser.username} pour l'utilisateur ${id}`);
+      
+      return {
+        success: true,
+        message: 'Avatar supprimé avec succès',
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression d'avatar pour l'utilisateur ${id}`, error);
       throw error;
     }
   }
