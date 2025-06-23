@@ -37,14 +37,7 @@ export class AvatarResponseDto {
 
   @ApiProperty({
     description: 'Indique si l\'URL est signée temporairement',
-    example: true
+    example: false
   })
   isSignedUrl: boolean;
-
-  @ApiProperty({
-    description: 'Date d\'expiration de l\'URL signée (si applicable)',
-    example: '2024-01-15T10:30:00Z',
-    required: false
-  })
-  expiresAt?: string;
 }

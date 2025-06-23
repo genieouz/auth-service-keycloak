@@ -95,21 +95,8 @@ export class StorageService {
         }
       );
 
-      // Générer l'URL selon la configuration
-      let url: string;
-      let isSignedUrl = false;
-      let expiresAt: Date | undefined;
-
-      if (this.publicUrl) {
-        // URL publique directe
-        url = `${this.publicUrl}/${this.bucketName}/${fileName}`;
-      } else {
-        // URL signée temporaire (7 jours par défaut)
-        const expirySeconds = 7 * 24 * 60 * 60; // 7 jours
-        url = await this.minioClient.presignedGetObject(this.bucketName, fileName, expirySeconds);
-        isSignedUrl = true;
-        expiresAt = new Date(Date.now() + expirySeconds * 1000);
-      }
+      // Générer l'URL pour la réponse immédiate
+      const url = await this.getAvatarUrl(fileName);
 
       this.logger.log(`Avatar uploadé avec succès: ${fileName} pour l'utilisateur ${userId}`);
 
@@ -118,8 +105,7 @@ export class StorageService {
         url,
         size: processedImage.size,
         mimeType: 'image/jpeg',
-        isSignedUrl,
-        expiresAt,
+        isSignedUrl: !this.publicUrl,
       };
     } catch (error) {
       this.logger.error(`Erreur lors de l'upload d'avatar pour l'utilisateur ${userId}`, error);
@@ -173,10 +159,12 @@ export class StorageService {
    */
   async getAvatarUrl(fileName: string): Promise<string> {
     if (this.publicUrl) {
+      // URL publique permanente
       return `${this.publicUrl}/${this.bucketName}/${fileName}`;
     } else {
-      // Générer une URL signée de 24h pour l'affichage
-      return await this.minioClient.presignedGetObject(this.bucketName, fileName, 24 * 60 * 60);
+      // URL signée temporaire (24h par défaut)
+      const expirySeconds = 24 * 60 * 60; // 24 heures
+      return await this.minioClient.presignedGetObject(this.bucketName, fileName, expirySeconds);
     }
   }
 
@@ -192,46 +180,6 @@ export class StorageService {
     }
   }
 
-  /**
-   * Vérifier si une URL signée a expiré et la renouveler si nécessaire
-   */
-  async refreshAvatarUrlIfNeeded(fileName: string, currentUrl: string, expiresAt?: Date): Promise<{
-    url: string;
-    isSignedUrl: boolean;
-    expiresAt?: Date;
-    needsUpdate: boolean;
-  }> {
-    // Si on a une URL publique, pas besoin de renouveler
-    if (this.publicUrl) {
-      return {
-        url: currentUrl,
-        isSignedUrl: false,
-        needsUpdate: false,
-      };
-    }
-
-    // Si pas de date d'expiration ou si elle expire dans moins d'1 heure, renouveler
-    if (!expiresAt || expiresAt.getTime() - Date.now() < 60 * 60 * 1000) {
-      const newUrl = await this.getSignedAvatarUrl(fileName, 7 * 24 * 60 * 60); // 7 jours
-      const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      
-      this.logger.log(`URL d'avatar renouvelée pour: ${fileName}`);
-      
-      return {
-        url: newUrl,
-        isSignedUrl: true,
-        expiresAt: newExpiresAt,
-        needsUpdate: true,
-      };
-    }
-
-    return {
-      url: currentUrl,
-      isSignedUrl: true,
-      expiresAt,
-      needsUpdate: false,
-    };
-  }
 
   /**
    * Valider le fichier image
@@ -334,27 +282,4 @@ export class StorageService {
     }
   }
 
-  /**
-   * Vérifier si une URL signée va expirer bientôt
-   */
-  isUrlExpiringSoon(expiresAt?: Date, thresholdHours: number = 1): boolean {
-    if (!expiresAt) return true;
-    
-    const thresholdMs = thresholdHours * 60 * 60 * 1000;
-    return expiresAt.getTime() - Date.now() < thresholdMs;
-  }
-
-  /**
-   * Renouveler une URL signée avec une nouvelle durée de validité
-   */
-  async renewSignedUrl(fileName: string, expiryDays: number = 7): Promise<{
-    url: string;
-    expiresAt: Date;
-  }> {
-    const expirySeconds = expiryDays * 24 * 60 * 60;
-    const url = await this.getSignedAvatarUrl(fileName, expirySeconds);
-    const expiresAt = new Date(Date.now() + expirySeconds * 1000);
-    
-    return { url, expiresAt };
-  }
 }

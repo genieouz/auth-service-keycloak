@@ -48,8 +48,7 @@ export class UserMapperUtil {
       'phone', 'birthDate', 'gender', 'address', 'city', 'postalCode', 
       'country', 'profession', 'acceptTerms', 'acceptPrivacyPolicy', 
       'acceptMarketing', 'registrationDate', 'accountType', 'emailVerified', 
-      'phoneVerified', 'accountSetupComplete', 'avatarUrl', 'avatarFileName',
-      'avatarIsSignedUrl', 'avatarExpiresAt'
+      'phoneVerified', 'accountSetupComplete', 'avatarUrl', 'avatarFileName'
     ]);
 
     const customAttributes: { [key: string]: any } = {};
