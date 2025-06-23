@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import * as jwksClient from 'jwks-rsa';
+import jwksClient from 'jwks-rsa';
 import { KeycloakTokenResponse, KeycloakUser, KeycloakError } from '../common/interfaces/keycloak.interface';
 
 @Injectable()
