@@ -14,6 +14,7 @@ import {
   Logger,
   UseGuards
 } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { 
   ApiTags, 
@@ -167,7 +168,7 @@ export class UsersController {
     status: 401, 
     description: 'Non authentifié' 
   })
-  async uploadMyAvatar(@CurrentUser() user: any, @UploadedFile() file: Express.Multer.File) {
+  async uploadMyAvatar(@CurrentUser() user: any, @UploadedFile() file: any) {
     try {
       if (!file) {
         throw new BadRequestException('Aucun fichier fourni');
@@ -325,7 +326,7 @@ export class UsersController {
     status: 404, 
     description: 'Utilisateur non trouvé' 
   })
-  async uploadUserAvatar(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @CurrentUser() currentUser: any) {
+  async uploadUserAvatar(@Param('id') id: string, @UploadedFile() file: any, @CurrentUser() currentUser: any) {
     try {
       if (!file) {
         throw new BadRequestException('Aucun fichier fourni');
