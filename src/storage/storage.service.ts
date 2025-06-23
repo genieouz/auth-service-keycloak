@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client as MinioClient } from 'minio';
-import sharp from 'sharp';
+// import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface UploadResult {
@@ -196,6 +196,14 @@ export class StorageService {
    */
   private async processAvatarImage(buffer: Buffer): Promise<{ buffer: Buffer; size: number }> {
     try {
+      // Version temporaire sans Sharp - retourne l'image originale
+      this.logger.warn('Sharp désactivé - image non optimisée');
+      return {
+        buffer,
+        size: buffer.length,
+      };
+      
+      /* Version avec Sharp (à réactiver après correction)
       const processedBuffer = await sharp(buffer)
         .resize(300, 300, {
           fit: 'cover',
@@ -211,6 +219,7 @@ export class StorageService {
         buffer: processedBuffer,
         size: processedBuffer.length,
       };
+      */
     } catch (error) {
       this.logger.error('Erreur lors du traitement de l\'image', error);
       throw new BadRequestException('Fichier image invalide ou corrompu');
