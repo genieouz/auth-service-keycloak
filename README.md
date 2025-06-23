@@ -123,7 +123,11 @@ src/
 | `MINIO_ACCESS_KEY` | Clé d'accès MinIO | `minioadmin` |
 | `MINIO_SECRET_KEY` | Clé secrète MinIO | `minioadmin` |
 | `MINIO_BUCKET_NAME` | Nom du bucket pour les avatars | `senegalservices-avatars` |
-| `MINIO_PUBLIC_URL` | URL publique de MinIO | `http://localhost:9000` |
+| `MINIO_PUBLIC_URL` | URL publique de MinIO (optionnel) | `` |
+
+**Note sur MINIO_PUBLIC_URL** :
+- Si définie : Les avatars auront des URLs publiques permanentes
+- Si vide : Les avatars utiliseront des URLs signées temporaires (plus sécurisé)
 
 ## 📡 Endpoints principaux
 
@@ -198,8 +202,9 @@ npm run start:prod
 Les avatars sont automatiquement :
 - Redimensionnés à 300x300 pixels
 - Optimisés en JPEG avec 85% de qualité
-- Stockés dans MinIO avec des URLs publiques
+- Stockés dans MinIO avec des URLs publiques ou signées selon la configuration
 - Organisés par utilisateur (`avatars/{userId}/{uuid}.jpg`)
+- URLs signées renouvelées automatiquement (7 jours de validité)
 
 Formats supportés : JPG, PNG, WebP (max 5MB)
 

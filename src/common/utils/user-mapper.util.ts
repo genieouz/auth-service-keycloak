@@ -11,6 +11,14 @@ export class UserMapperUtil {
   static mapKeycloakUserToProfile(keycloakUser: KeycloakUser, roles: string[] = [], clientRoles: string[] = []): UserProfileDto {
     const attributes = keycloakUser.attributes || {};
     
+    // Gérer l'URL de l'avatar (peut nécessiter un renouvellement si signée)
+    let avatarUrl = this.getFirstAttributeValue(attributes.avatarUrl);
+    const isSignedUrl = this.getBooleanAttributeValue(attributes.avatarIsSignedUrl, false);
+    const expiresAt = this.getFirstAttributeValue(attributes.avatarExpiresAt);
+    
+    // Si l'URL est signée et expire bientôt, on pourrait la marquer pour renouvellement
+    // (la logique de renouvellement sera gérée côté service)
+    
     // Extraire et convertir les attributs de string[] vers les types appropriés
     const profile: UserProfileDto = {
       id: keycloakUser.id,
@@ -37,7 +45,7 @@ export class UserMapperUtil {
       acceptPrivacyPolicy: this.getBooleanAttributeValue(attributes.acceptPrivacyPolicy, true),
       acceptMarketing: this.getBooleanAttributeValue(attributes.acceptMarketing, false),
       accountType: this.getFirstAttributeValue(attributes.accountType),
-      avatarUrl: this.getFirstAttributeValue(attributes.avatarUrl),
+      avatarUrl,
     };
 
     // Collecter les attributs personnalisés non mappés
@@ -45,7 +53,8 @@ export class UserMapperUtil {
       'phone', 'birthDate', 'gender', 'address', 'city', 'postalCode', 
       'country', 'profession', 'acceptTerms', 'acceptPrivacyPolicy', 
       'acceptMarketing', 'registrationDate', 'accountType', 'emailVerified', 
-      'phoneVerified', 'accountSetupComplete', 'avatarUrl', 'avatarFileName'
+      'phoneVerified', 'accountSetupComplete', 'avatarUrl', 'avatarFileName',
+      'avatarIsSignedUrl', 'avatarExpiresAt'
     ]);
 
     const customAttributes: { [key: string]: any } = {};

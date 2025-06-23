@@ -215,7 +215,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  // @Roles(Role.ADMIN, Role.MODERATOR, Role.USER)
+  @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ 
     summary: 'Récupérer un utilisateur par ID',
     description: 'Récupère les détails d\'un utilisateur spécifique par son identifiant unique'
@@ -423,6 +423,34 @@ export class UsersController {
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression d'avatar pour l'utilisateur ${id}`, error);
       throw error;
+    }
+  }
+
+  @Get('avatar/:fileName')
+  @ApiOperation({ 
+    summary: 'Récupérer un avatar par nom de fichier',
+    description: 'Proxy pour servir les avatars depuis MinIO'
+  })
+  @ApiParam({ 
+    name: 'fileName', 
+    description: 'Nom du fichier avatar',
+    example: 'avatars/user-id/uuid.jpg'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Avatar récupéré avec succès'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Avatar non trouvé' 
+  })
+  async getAvatar(@Param('fileName') fileName: string, @Res() res: any) {
+    try {
+      const avatarUrl = await this.usersService.getAvatarUrl(fileName);
+      return res.redirect(avatarUrl);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'avatar: ${fileName}`, error);
+      throw new NotFoundException('Avatar non trouvé');
     }
   }
 

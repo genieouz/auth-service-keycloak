@@ -152,6 +152,8 @@ export class UsersService {
           ...user.attributes,
           avatarUrl: [uploadResult.url],
           avatarFileName: [uploadResult.fileName],
+          avatarIsSignedUrl: [uploadResult.isSignedUrl.toString()],
+          ...(uploadResult.expiresAt && { avatarExpiresAt: [uploadResult.expiresAt.toISOString()] }),
         },
       });
 
@@ -191,6 +193,8 @@ export class UsersService {
       const updatedAttributes = { ...user.attributes };
       delete updatedAttributes.avatarUrl;
       delete updatedAttributes.avatarFileName;
+      delete updatedAttributes.avatarIsSignedUrl;
+      delete updatedAttributes.avatarExpiresAt;
 
       await this.keycloakService.updateUser(userId, {
         attributes: updatedAttributes,

@@ -13,9 +13,9 @@ export class UploadAvatarDto {
 export class AvatarResponseDto {
   @ApiProperty({
     description: 'URL de l\'avatar uploadé',
-    example: 'http://localhost:9000/senegalservices-avatars/avatars/user-id/avatar.jpg'
+    example: 'https://minio.example.com/bucket/avatars/user-id/avatar.jpg'
   })
-  avatarUrl: string;
+  url: string;
 
   @ApiProperty({
     description: 'Nom du fichier dans le stockage',
@@ -34,4 +34,17 @@ export class AvatarResponseDto {
     example: 'image/jpeg'
   })
   mimeType: string;
+
+  @ApiProperty({
+    description: 'Indique si l\'URL est signée temporairement',
+    example: true
+  })
+  isSignedUrl: boolean;
+
+  @ApiProperty({
+    description: 'Date d\'expiration de l\'URL signée (si applicable)',
+    example: '2024-01-15T10:30:00Z',
+    required: false
+  })
+  expiresAt?: string;
 }

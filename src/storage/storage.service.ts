@@ -9,6 +9,8 @@ export interface UploadResult {
   url: string;
   size: number;
   mimeType: string;
+  isSignedUrl: boolean;
+  expiresAt?: Date;
 }
 
 @Injectable()
@@ -20,7 +22,7 @@ export class StorageService {
 
   constructor(private configService: ConfigService) {
     this.bucketName = this.configService.get('MINIO_BUCKET_NAME');
-    this.publicUrl = this.configService.get('MINIO_PUBLIC_URL');
+    this.publicUrl = this.configService.get('MINIO_PUBLIC_URL') || '';
 
     this.minioClient = new MinioClient({
       endPoint: this.configService.get('MINIO_ENDPOINT'),
@@ -43,22 +45,24 @@ export class StorageService {
       if (!bucketExists) {
         await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
         this.logger.log(`Bucket créé: ${this.bucketName}`);
+        
+        // Définir la politique publique seulement si on a une URL publique
+        if (this.publicUrl) {
+          const policy = {
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: { AWS: ['*'] },
+                Action: ['s3:GetObject'],
+                Resource: [`arn:aws:s3:::${this.bucketName}/avatars/*`],
+              },
+            ],
+          };
 
-        // Définir la politique publique pour les avatars
-        const policy = {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: { AWS: ['*'] },
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${this.bucketName}/avatars/*`],
-            },
-          ],
-        };
-
-        await this.minioClient.setBucketPolicy(this.bucketName, JSON.stringify(policy));
-        this.logger.log(`Politique publique définie pour le bucket: ${this.bucketName}`);
+          await this.minioClient.setBucketPolicy(this.bucketName, JSON.stringify(policy));
+          this.logger.log(`Politique publique définie pour le bucket: ${this.bucketName}`);
+        }
       }
     } catch (error) {
       this.logger.error('Erreur lors de l\'initialisation du bucket MinIO', error);
@@ -91,7 +95,21 @@ export class StorageService {
         }
       );
 
-      const url = `${this.publicUrl}/${this.bucketName}/${fileName}`;
+      // Générer l'URL selon la configuration
+      let url: string;
+      let isSignedUrl = false;
+      let expiresAt: Date | undefined;
+
+      if (this.publicUrl) {
+        // URL publique directe
+        url = `${this.publicUrl}/${this.bucketName}/${fileName}`;
+      } else {
+        // URL signée temporaire (7 jours par défaut)
+        const expirySeconds = 7 * 24 * 60 * 60; // 7 jours
+        url = await this.minioClient.presignedGetObject(this.bucketName, fileName, expirySeconds);
+        isSignedUrl = true;
+        expiresAt = new Date(Date.now() + expirySeconds * 1000);
+      }
 
       this.logger.log(`Avatar uploadé avec succès: ${fileName} pour l'utilisateur ${userId}`);
 
@@ -100,6 +118,8 @@ export class StorageService {
         url,
         size: processedImage.size,
         mimeType: 'image/jpeg',
+        isSignedUrl,
+        expiresAt,
       };
     } catch (error) {
       this.logger.error(`Erreur lors de l'upload d'avatar pour l'utilisateur ${userId}`, error);
@@ -151,12 +171,17 @@ export class StorageService {
   /**
    * Obtenir l'URL d'un avatar
    */
-  getAvatarUrl(fileName: string): string {
-    return `${this.publicUrl}/${this.bucketName}/${fileName}`;
+  async getAvatarUrl(fileName: string): Promise<string> {
+    if (this.publicUrl) {
+      return `${this.publicUrl}/${this.bucketName}/${fileName}`;
+    } else {
+      // Générer une URL signée de 24h pour l'affichage
+      return await this.minioClient.presignedGetObject(this.bucketName, fileName, 24 * 60 * 60);
+    }
   }
 
   /**
-   * Générer une URL signée temporaire (pour les avatars privés)
+   * Générer une URL signée temporaire
    */
   async getSignedAvatarUrl(fileName: string, expirySeconds: number = 3600): Promise<string> {
     try {
@@ -165,6 +190,23 @@ export class StorageService {
       this.logger.error(`Erreur lors de la génération d'URL signée pour: ${fileName}`, error);
       throw new InternalServerErrorException('Erreur lors de la génération de l\'URL d\'avatar');
     }
+  }
+
+  /**
+   * Vérifier si une URL signée a expiré et la renouveler si nécessaire
+   */
+  async refreshAvatarUrlIfNeeded(fileName: string, currentUrl: string, expiresAt?: Date): Promise<string> {
+    // Si on a une URL publique, pas besoin de renouveler
+    if (this.publicUrl) {
+      return currentUrl;
+    }
+
+    // Si pas de date d'expiration ou si elle expire dans moins d'1 heure, renouveler
+    if (!expiresAt || expiresAt.getTime() - Date.now() < 60 * 60 * 1000) {
+      return await this.getSignedAvatarUrl(fileName, 7 * 24 * 60 * 60); // 7 jours
+    }
+
+    return currentUrl;
   }
 
   /**
