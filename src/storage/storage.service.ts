@@ -19,15 +19,15 @@ export class StorageService {
   private readonly publicUrl: string;
 
   constructor(private configService: ConfigService) {
-    this.bucketName = this.configService.get('MINIO_BUCKET_NAME') || 'senegalservices-avatars';
-    this.publicUrl = this.configService.get('MINIO_PUBLIC_URL') || 'http://localhost:9000';
+    this.bucketName = this.configService.get('MINIO_BUCKET_NAME');
+    this.publicUrl = this.configService.get('MINIO_PUBLIC_URL');
 
     this.minioClient = new MinioClient({
-      endPoint: this.configService.get('MINIO_ENDPOINT') || 'localhost',
-      port: parseInt(this.configService.get('MINIO_PORT')) || 9000,
+      endPoint: this.configService.get('MINIO_ENDPOINT'),
+      port: parseInt(this.configService.get('MINIO_PORT')),
       useSSL: this.configService.get('MINIO_USE_SSL') === 'true',
-      accessKey: this.configService.get('MINIO_ACCESS_KEY') || 'minioadmin',
-      secretKey: this.configService.get('MINIO_SECRET_KEY') || 'minioadmin',
+      accessKey: this.configService.get('MINIO_ACCESS_KEY'),
+      secretKey: this.configService.get('MINIO_SECRET_KEY'),
     });
 
     this.initializeBucket();
