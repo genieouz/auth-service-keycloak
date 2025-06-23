@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client as MinioClient } from 'minio';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface UploadResult {
@@ -69,7 +69,7 @@ export class StorageService {
    * Uploader un avatar utilisateur
    */
   async uploadAvatar(file: any, userId: string): Promise<UploadResult> {
-import sharp from 'sharp';
+    try {
       this.validateImageFile(file);
 
       // Générer un nom de fichier unique
