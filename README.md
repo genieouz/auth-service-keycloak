@@ -1,12 +1,13 @@
 # Authentication Service - Microservice NestJS
 
-Service d'authentification utilisant NestJS avec intégration Keycloak et MongoDB pour la gestion des utilisateurs et des codes OTP.
+Service d'authentification utilisant NestJS avec intégration Keycloak, MongoDB pour la gestion des utilisateurs et des codes OTP, et MinIO pour le stockage des avatars.
 
 ## 🚀 Fonctionnalités
 
 - **Inscription utilisateur** avec vérification OTP (email ou téléphone)
 - **Authentification** via Keycloak avec email ou téléphone
 - **Gestion des utilisateurs** (CRUD complet)
+- **Gestion des avatars** avec stockage MinIO et optimisation d'images
 - **Codes OTP** avec expiration automatique (5 minutes)
 - **Documentation Swagger** complète en français
 - **Architecture modulaire** et extensible
@@ -16,6 +17,7 @@ Service d'authentification utilisant NestJS avec intégration Keycloak et MongoD
 - Node.js (version 18+)
 - MongoDB (connexion cloud configurée)
 - Keycloak (serveur local sur le port 8080)
+- MinIO (serveur local sur le port 9000)
 
 ## 🛠️ Installation
 
@@ -38,6 +40,15 @@ npm run start:dev
 # Mode production
 npm run build
 npm run start:prod
+```
+
+4. **Démarrer MinIO (optionnel pour le développement)**
+```bash
+# Avec Docker
+docker run -p 9000:9000 -p 9001:9001 \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  minio/minio server /data --console-address ":9001"
 ```
 
 ## 📖 Documentation API
@@ -102,6 +113,18 @@ src/
 | `KEYCLOAK_USER_CLIENT_ID` | Client ID utilisateurs | `senegalservices_client` |
 | `PORT` | Port du service | `3001` |
 
+### Variables MinIO
+
+| Variable | Description | Défaut |
+|----------|-------------|---------|
+| `MINIO_ENDPOINT` | Endpoint du serveur MinIO | `localhost` |
+| `MINIO_PORT` | Port du serveur MinIO | `9000` |
+| `MINIO_USE_SSL` | Utiliser SSL pour MinIO | `false` |
+| `MINIO_ACCESS_KEY` | Clé d'accès MinIO | `minioadmin` |
+| `MINIO_SECRET_KEY` | Clé secrète MinIO | `minioadmin` |
+| `MINIO_BUCKET_NAME` | Nom du bucket pour les avatars | `senegalservices-avatars` |
+| `MINIO_PUBLIC_URL` | URL publique de MinIO | `http://localhost:9000` |
+
 ## 📡 Endpoints principaux
 
 ### Authentification
@@ -114,6 +137,12 @@ src/
 - `GET /users/:id` - Détails d'un utilisateur
 - `PATCH /users/:id` - Modifier un utilisateur
 - `DELETE /users/:id` - Supprimer un utilisateur
+
+### Gestion des avatars
+- `POST /users/me/avatar` - Uploader son avatar
+- `DELETE /users/me/avatar` - Supprimer son avatar
+- `POST /users/:id/avatar` - Uploader l'avatar d'un utilisateur (Admin)
+- `DELETE /users/:id/avatar` - Supprimer l'avatar d'un utilisateur (Admin)
 
 ## 🔄 Flux d'inscription
 
@@ -163,6 +192,16 @@ npm run start:prod
 ```
 
 ## 🔧 Développement
+
+### Gestion des avatars
+
+Les avatars sont automatiquement :
+- Redimensionnés à 300x300 pixels
+- Optimisés en JPEG avec 85% de qualité
+- Stockés dans MinIO avec des URLs publiques
+- Organisés par utilisateur (`avatars/{userId}/{uuid}.jpg`)
+
+Formats supportés : JPG, PNG, WebP (max 5MB)
 
 ### Ajout d'un nouveau module
 ```bash

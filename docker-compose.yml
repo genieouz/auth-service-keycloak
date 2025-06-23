@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Service MinIO pour le stockage des fichiers
+  minio:
+    image: minio/minio:latest
+    container_name: senegalservices-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - senegalservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Service MongoDB (optionnel si vous utilisez MongoDB Atlas)
+  mongodb:
+    image: mongo:7.0
+    container_name: senegalservices-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: senegalservices
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - senegalservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Service Keycloak (optionnel)
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: senegalservices-keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+    command: start-dev
+    networks:
+      - senegalservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  minio_data:
+    driver: local
+  mongodb_data:
+    driver: local
+
+networks:
+  senegalservices-network:
+    driver: bridge
