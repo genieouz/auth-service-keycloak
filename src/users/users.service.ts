@@ -211,6 +211,13 @@ export class UsersService {
   }
 
   /**
+   * Obtenir l'URL d'un avatar
+   */
+  async getAvatarUrl(fileName: string): Promise<string> {
+    return await this.storageService.getAvatarUrl(fileName);
+  }
+
+  /**
    * Extraire le nom de fichier depuis une URL
    */
   private extractFileNameFromUrl(url: string): string | null {
