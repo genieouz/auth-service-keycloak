@@ -37,6 +37,7 @@ export class UserMapperUtil {
       acceptPrivacyPolicy: this.getBooleanAttributeValue(attributes.acceptPrivacyPolicy, true),
       acceptMarketing: this.getBooleanAttributeValue(attributes.acceptMarketing, false),
       accountType: this.getFirstAttributeValue(attributes.accountType),
+      avatarUrl: this.getFirstAttributeValue(attributes.avatarUrl),
     };
 
     // Collecter les attributs personnalisés non mappés
@@ -44,7 +45,7 @@ export class UserMapperUtil {
       'phone', 'birthDate', 'gender', 'address', 'city', 'postalCode', 
       'country', 'profession', 'acceptTerms', 'acceptPrivacyPolicy', 
       'acceptMarketing', 'registrationDate', 'accountType', 'emailVerified', 
-      'phoneVerified', 'accountSetupComplete'
+      'phoneVerified', 'accountSetupComplete', 'avatarUrl', 'avatarFileName'
     ]);
 
     const customAttributes: { [key: string]: any } = {};

@@ -34,10 +34,11 @@ async function bootstrap() {
   // Configuration Swagger
   const config = new DocumentBuilder()
     .setTitle('Service d\'authentification')
-    .setDescription('API REST sécurisée pour la gestion de l\'authentification avec Keycloak et contrôle d\'accès basé sur les rôles')
+    .setDescription('API REST sécurisée pour la gestion de l\'authentification avec Keycloak, contrôle d\'accès basé sur les rôles et gestion des avatars')
     .setVersion('1.0')
     .addTag('authentification', 'Endpoints pour l\'authentification des utilisateurs')
     .addTag('utilisateurs', 'Endpoints pour la gestion des utilisateurs')
+    .addTag('avatars', 'Endpoints pour la gestion des avatars utilisateurs')
     .addBearerAuth(
       {
         type: 'http',
