@@ -22,7 +22,11 @@ export class UsersService {
   async getUserById(userId: string): Promise<UserProfileDto> {
     try {
       const keycloakUser = await this.keycloakService.getUserById(userId);
-      return UserMapperUtil.mapKeycloakUserToProfile(keycloakUser);
+      
+      // Vérifier et rafraîchir l'URL d'avatar si nécessaire
+      const updatedKeycloakUser = await this.refreshUserAvatarIfNeeded(keycloakUser);
+      
+      return UserMapperUtil.mapKeycloakUserToProfile(updatedKeycloakUser);
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération de l'utilisateur ${userId}`, error);
       throw new NotFoundException('Utilisateur non trouvé');
@@ -49,8 +53,14 @@ export class UsersService {
         this.keycloakService.getUsersCount()
       ]);
       
-      // Mapper les utilisateurs Keycloak vers le format API
-      const mappedUsers = users.map(user => UserMapperUtil.mapKeycloakUserToProfile(user));
+      // Rafraîchir les URLs d'avatar et mapper les utilisateurs
+      const usersWithRefreshedAvatars = await Promise.all(
+        users.map(user => this.refreshUserAvatarIfNeeded(user))
+      );
+      
+      const mappedUsers = usersWithRefreshedAvatars.map(user => 
+        UserMapperUtil.mapKeycloakUserToProfile(user)
+      );
       
       return {
         users: mappedUsers,
@@ -62,6 +72,63 @@ export class UsersService {
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des utilisateurs', error);
       throw error;
+    }
+  }
+
+  /**
+   * Vérifier et rafraîchir l'URL d'avatar d'un utilisateur si nécessaire
+   */
+  private async refreshUserAvatarIfNeeded(keycloakUser: KeycloakUser): Promise<KeycloakUser> {
+    try {
+      const avatarUrl = keycloakUser.attributes?.avatarUrl?.[0];
+      const avatarFileName = keycloakUser.attributes?.avatarFileName?.[0];
+      const isSignedUrl = keycloakUser.attributes?.avatarIsSignedUrl?.[0] === 'true';
+      const expiresAtStr = keycloakUser.attributes?.avatarExpiresAt?.[0];
+      
+      // Si pas d'avatar ou URL publique, pas besoin de rafraîchir
+      if (!avatarUrl || !avatarFileName || !isSignedUrl) {
+        return keycloakUser;
+      }
+      
+      const expiresAt = expiresAtStr ? new Date(expiresAtStr) : undefined;
+      
+      // Vérifier si l'URL a besoin d'être rafraîchie
+      const refreshResult = await this.storageService.refreshAvatarUrlIfNeeded(
+        avatarFileName,
+        avatarUrl,
+        expiresAt
+      );
+      
+      // Si l'URL a été mise à jour, mettre à jour Keycloak
+      if (refreshResult.needsUpdate && keycloakUser.id) {
+        const updatedAttributes = {
+          ...keycloakUser.attributes,
+          avatarUrl: [refreshResult.url],
+          avatarIsSignedUrl: [refreshResult.isSignedUrl.toString()],
+          ...(refreshResult.expiresAt && { 
+            avatarExpiresAt: [refreshResult.expiresAt.toISOString()] 
+          }),
+        };
+        
+        // Mettre à jour dans Keycloak de manière asynchrone (ne pas bloquer la réponse)
+        this.keycloakService.updateUser(keycloakUser.id, {
+          attributes: updatedAttributes,
+        }).catch(error => {
+          this.logger.error(`Erreur lors de la mise à jour de l'URL d'avatar pour ${keycloakUser.id}`, error);
+        });
+        
+        // Retourner l'utilisateur avec l'URL mise à jour
+        return {
+          ...keycloakUser,
+          attributes: updatedAttributes,
+        };
+      }
+      
+      return keycloakUser;
+    } catch (error) {
+      this.logger.error(`Erreur lors du rafraîchissement de l'avatar pour l'utilisateur ${keycloakUser.id}`, error);
+      // En cas d'erreur, retourner l'utilisateur original
+      return keycloakUser;
     }
   }
 
@@ -232,5 +299,86 @@ export class UsersService {
       this.logger.error('Erreur lors de l\'extraction du nom de fichier depuis l\'URL', error);
       return null;
     }
+  }
+
+  /**
+   * Rafraîchir les URLs d'avatar expirées pour tous les utilisateurs (tâche de maintenance)
+   */
+  async refreshExpiredAvatarUrls(): Promise<{ updated: number; errors: number }> {
+    let updated = 0;
+    let errors = 0;
+    
+    try {
+      this.logger.log('Début du rafraîchissement des URLs d\'avatar expirées');
+      
+      // Récupérer tous les utilisateurs par batch
+      let first = 0;
+      const limit = 50;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const users = await this.keycloakService.getUsers(first, limit);
+        
+        if (users.length === 0) {
+          hasMore = false;
+          break;
+        }
+        
+        // Traiter chaque utilisateur
+        for (const user of users) {
+          try {
+            const avatarUrl = user.attributes?.avatarUrl?.[0];
+            const avatarFileName = user.attributes?.avatarFileName?.[0];
+            const isSignedUrl = user.attributes?.avatarIsSignedUrl?.[0] === 'true';
+            const expiresAtStr = user.attributes?.avatarExpiresAt?.[0];
+            
+            // Vérifier si cet utilisateur a besoin d'un rafraîchissement
+            if (avatarUrl && avatarFileName && isSignedUrl) {
+              const expiresAt = expiresAtStr ? new Date(expiresAtStr) : undefined;
+              
+              // Vérifier si l'URL expire dans les 24 heures
+              if (this.storageService.isUrlExpiringSoon(expiresAt, 24)) {
+                const refreshResult = await this.storageService.refreshAvatarUrlIfNeeded(
+                  avatarFileName,
+                  avatarUrl,
+                  expiresAt
+                );
+                
+                if (refreshResult.needsUpdate && user.id) {
+                  await this.keycloakService.updateUser(user.id, {
+                    attributes: {
+                      ...user.attributes,
+                      avatarUrl: [refreshResult.url],
+                      avatarIsSignedUrl: [refreshResult.isSignedUrl.toString()],
+                      ...(refreshResult.expiresAt && { 
+                        avatarExpiresAt: [refreshResult.expiresAt.toISOString()] 
+                      }),
+                    },
+                  });
+                  
+                  updated++;
+                  this.logger.log(`URL d'avatar rafraîchie pour l'utilisateur ${user.id}`);
+                }
+              }
+            }
+          } catch (error) {
+            errors++;
+            this.logger.error(`Erreur lors du rafraîchissement pour l'utilisateur ${user.id}`, error);
+          }
+        }
+        
+        first += limit;
+        
+        // Pause courte entre les batches pour éviter la surcharge
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      this.logger.log(`Rafraîchissement terminé: ${updated} URLs mises à jour, ${errors} erreurs`);
+      
+    } catch (error) {
+      this.logger.error('Erreur lors du rafraîchissement global des URLs d\'avatar', error);
+    }
+    
+    return { updated, errors };
   }
 }

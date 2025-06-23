@@ -455,6 +455,39 @@ export class UsersController {
     }
   }
 
+  @Post('maintenance/refresh-avatar-urls')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Rafraîchir les URLs d\'avatar expirées (Maintenance)',
+    description: 'Tâche de maintenance pour rafraîchir toutes les URLs d\'avatar signées qui expirent bientôt'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Rafraîchissement terminé',
+    type: ApiResponseDto 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Permissions insuffisantes' 
+  })
+  async refreshExpiredAvatarUrls(@CurrentUser() currentUser: any) {
+    try {
+      const result = await this.usersService.refreshExpiredAvatarUrls();
+      
+      this.logger.log(`Maintenance des avatars lancée par ${currentUser.username}: ${result.updated} URLs mises à jour`);
+      
+      return {
+        success: true,
+        message: `Rafraîchissement terminé: ${result.updated} URLs mises à jour, ${result.errors} erreurs`,
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error('Erreur lors de la maintenance des avatars', error);
+      throw error;
+    }
+  }
+
   @Get('search/:query')
   @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ 

@@ -195,18 +195,42 @@ export class StorageService {
   /**
    * Vérifier si une URL signée a expiré et la renouveler si nécessaire
    */
-  async refreshAvatarUrlIfNeeded(fileName: string, currentUrl: string, expiresAt?: Date): Promise<string> {
+  async refreshAvatarUrlIfNeeded(fileName: string, currentUrl: string, expiresAt?: Date): Promise<{
+    url: string;
+    isSignedUrl: boolean;
+    expiresAt?: Date;
+    needsUpdate: boolean;
+  }> {
     // Si on a une URL publique, pas besoin de renouveler
     if (this.publicUrl) {
-      return currentUrl;
+      return {
+        url: currentUrl,
+        isSignedUrl: false,
+        needsUpdate: false,
+      };
     }
 
     // Si pas de date d'expiration ou si elle expire dans moins d'1 heure, renouveler
     if (!expiresAt || expiresAt.getTime() - Date.now() < 60 * 60 * 1000) {
-      return await this.getSignedAvatarUrl(fileName, 7 * 24 * 60 * 60); // 7 jours
+      const newUrl = await this.getSignedAvatarUrl(fileName, 7 * 24 * 60 * 60); // 7 jours
+      const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      
+      this.logger.log(`URL d'avatar renouvelée pour: ${fileName}`);
+      
+      return {
+        url: newUrl,
+        isSignedUrl: true,
+        expiresAt: newExpiresAt,
+        needsUpdate: true,
+      };
     }
 
-    return currentUrl;
+    return {
+      url: currentUrl,
+      isSignedUrl: true,
+      expiresAt,
+      needsUpdate: false,
+    };
   }
 
   /**
@@ -308,5 +332,29 @@ export class StorageService {
       this.logger.error('Erreur lors de la récupération des statistiques du bucket', error);
       return { objectCount: 0, totalSize: 0 };
     }
+  }
+
+  /**
+   * Vérifier si une URL signée va expirer bientôt
+   */
+  isUrlExpiringSoon(expiresAt?: Date, thresholdHours: number = 1): boolean {
+    if (!expiresAt) return true;
+    
+    const thresholdMs = thresholdHours * 60 * 60 * 1000;
+    return expiresAt.getTime() - Date.now() < thresholdMs;
+  }
+
+  /**
+   * Renouveler une URL signée avec une nouvelle durée de validité
+   */
+  async renewSignedUrl(fileName: string, expiryDays: number = 7): Promise<{
+    url: string;
+    expiresAt: Date;
+  }> {
+    const expirySeconds = expiryDays * 24 * 60 * 60;
+    const url = await this.getSignedAvatarUrl(fileName, expirySeconds);
+    const expiresAt = new Date(Date.now() + expirySeconds * 1000);
+    
+    return { url, expiresAt };
   }
 }

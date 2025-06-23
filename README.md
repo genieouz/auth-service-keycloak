@@ -208,6 +208,25 @@ Les avatars sont automatiquement :
 
 Formats supportés : JPG, PNG, WebP (max 5MB)
 
+#### Gestion des URLs signées
+
+Quand `MINIO_PUBLIC_URL` n'est pas configurée, le système utilise des URLs signées temporaires pour sécuriser l'accès aux avatars :
+
+- **Durée de validité** : 7 jours par défaut
+- **Rafraîchissement automatique** : Les URLs sont automatiquement renouvelées quand elles expirent dans moins d'1 heure
+- **Tâche planifiée** : Tous les jours à 2h du matin, le système vérifie et renouvelle les URLs qui expirent dans les 24h
+- **Maintenance manuelle** : Endpoint `POST /users/maintenance/refresh-avatar-urls` pour forcer le rafraîchissement (Admin uniquement)
+
+**Avantages des URLs signées** :
+- Sécurité renforcée (accès temporaire)
+- Contrôle d'accès granulaire
+- Pas d'exposition publique des fichiers
+
+**Inconvénients** :
+- Complexité de gestion
+- Nécessite un rafraîchissement périodique
+- Légère latence lors du premier accès après renouvellement
+
 ### Ajout d'un nouveau module
 ```bash
 nest generate module <nom-module>

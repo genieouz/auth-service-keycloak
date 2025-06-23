@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { ScheduleModule } from "@nestjs/schedule";
 import { APP_GUARD } from "@nestjs/core";
 import { AuthModule } from "./auth/auth.module";
 import { OtpModule } from "./otp/otp.module";
@@ -21,6 +22,9 @@ import { PermissionsModule } from "./permissions/permissions.module";
       isGlobal: true,
       envFilePath: ".env",
     }),
+
+    // Configuration des tâches planifiées
+    ScheduleModule.forRoot(),
 
     // Configuration du rate limiting
     ThrottlerModule.forRoot([{

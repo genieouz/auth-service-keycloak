@@ -13,11 +13,6 @@ export class UserMapperUtil {
     
     // Gérer l'URL de l'avatar (peut nécessiter un renouvellement si signée)
     let avatarUrl = this.getFirstAttributeValue(attributes.avatarUrl);
-    const isSignedUrl = this.getBooleanAttributeValue(attributes.avatarIsSignedUrl, false);
-    const expiresAt = this.getFirstAttributeValue(attributes.avatarExpiresAt);
-    
-    // Si l'URL est signée et expire bientôt, on pourrait la marquer pour renouvellement
-    // (la logique de renouvellement sera gérée côté service)
     
     // Extraire et convertir les attributs de string[] vers les types appropriés
     const profile: UserProfileDto = {
