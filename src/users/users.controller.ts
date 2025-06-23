@@ -9,12 +9,13 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
+  Res,
   HttpCode, 
   HttpStatus, 
   Logger,
   UseGuards
 } from '@nestjs/common';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { 
   ApiTags, 
