@@ -175,12 +175,9 @@ export class UsersService {
       }
 
       // Supprimer l'ancien avatar s'il existe
-      const currentAvatarUrl = user.attributes?.avatarUrl?.[0];
-      if (currentAvatarUrl) {
-        const currentFileName = this.extractFileNameFromUrl(currentAvatarUrl);
-        if (currentFileName) {
-          await this.storageService.deleteAvatar(currentFileName);
-        }
+      const currentAvatarFileName = user.attributes?.avatarFileName?.[0];
+      if (currentAvatarFileName) {
+        await this.storageService.deleteAvatar(currentAvatarFileName);
       }
 
       // Uploader le nouvel avatar
