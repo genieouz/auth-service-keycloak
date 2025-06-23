@@ -7,7 +7,7 @@ export class UploadAvatarDto {
     description: 'Fichier image pour l\'avatar (JPG, PNG, WebP - max 5MB)',
     example: 'avatar.jpg'
   })
-  avatar: Express.Multer.File;
+  avatar: any;
 }
 
 export class AvatarResponseDto {

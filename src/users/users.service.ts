@@ -126,7 +126,7 @@ export class UsersService {
   /**
    * Uploader un avatar pour un utilisateur
    */
-  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<UploadResult> {
+  async uploadAvatar(userId: string, file: any): Promise<UploadResult> {
     try {
       // Vérifier que l'utilisateur existe
       const user = await this.keycloakService.getUserById(userId);

@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as Minio from 'minio';
-import * as sharp from 'sharp';
+import { Client as MinioClient } from 'minio';
+import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface UploadResult {
@@ -14,7 +14,7 @@ export interface UploadResult {
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
-  private readonly minioClient: Minio.Client;
+  private readonly minioClient: MinioClient;
   private readonly bucketName: string;
   private readonly publicUrl: string;
 
@@ -22,7 +22,7 @@ export class StorageService {
     this.bucketName = this.configService.get('MINIO_BUCKET_NAME') || 'senegalservices-avatars';
     this.publicUrl = this.configService.get('MINIO_PUBLIC_URL') || 'http://localhost:9000';
 
-    this.minioClient = new Minio.Client({
+    this.minioClient = new MinioClient({
       endPoint: this.configService.get('MINIO_ENDPOINT') || 'localhost',
       port: parseInt(this.configService.get('MINIO_PORT')) || 9000,
       useSSL: this.configService.get('MINIO_USE_SSL') === 'true',
@@ -68,9 +68,8 @@ export class StorageService {
   /**
    * Uploader un avatar utilisateur
    */
-  async uploadAvatar(file: Express.Multer.File, userId: string): Promise<UploadResult> {
+  async uploadAvatar(file: any, userId: string): Promise<UploadResult> {
     try {
-      // Valider le fichier
       this.validateImageFile(file);
 
       // Générer un nom de fichier unique
@@ -171,7 +170,7 @@ export class StorageService {
   /**
    * Valider le fichier image
    */
-  private validateImageFile(file: Express.Multer.File): void {
+  private validateImageFile(file: any): void {
     // Vérifier la taille (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
