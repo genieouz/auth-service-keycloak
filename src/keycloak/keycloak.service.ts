@@ -678,7 +678,26 @@ export class KeycloakService {
       return response.data;
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération des rôles pour ${userId}`, error.response?.data);
-      throw new BadRequestException('Impossible de récupérer les rôles de l\'utilisateur');
+      // Retourner un tableau vide au lieu de faire échouer la requête
+      this.logger.warn(`Retour d'un tableau vide pour les rôles de l'utilisateur ${userId}`);
+      return [];
+    }
+  }
+
+  /**
+   * Récupérer un utilisateur avec ses rôles en une seule requête
+   */
+  async getUserWithRoles(userId: string): Promise<{ user: KeycloakUser; roles: any[] }> {
+    try {
+      const [user, roles] = await Promise.all([
+        this.getUserById(userId),
+        this.getUserRoles(userId)
+      ]);
+      
+      return { user, roles };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'utilisateur avec rôles ${userId}`, error);
+      throw new BadRequestException('Utilisateur non trouvé');
     }
   }
 

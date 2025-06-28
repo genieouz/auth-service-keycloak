@@ -21,12 +21,15 @@ export class UsersService {
    */
   async getUserById(userId: string): Promise<UserProfileDto> {
     try {
-      const keycloakUser = await this.keycloakService.getUserById(userId);
+      // Récupérer l'utilisateur et ses rôles en une seule fois
+      const { user: keycloakUser, roles: userRoles } = await this.keycloakService.getUserWithRoles(userId);
+      const realmRoles = userRoles.map(role => role.name);
+      const clientRoles: string[] = []; // À implémenter si nécessaire
       
       // Générer l'URL d'avatar à la demande si l'utilisateur en a un
       const updatedKeycloakUser = await this.generateAvatarUrlIfNeeded(keycloakUser);
       
-      return UserMapperUtil.mapKeycloakUserToProfile(updatedKeycloakUser);
+      return UserMapperUtil.mapKeycloakUserToProfile(updatedKeycloakUser, realmRoles, clientRoles);
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération de l'utilisateur ${userId}`, error);
       throw new NotFoundException('Utilisateur non trouvé');
@@ -58,8 +61,21 @@ export class UsersService {
         users.map(user => this.generateAvatarUrlIfNeeded(user))
       );
       
-      const mappedUsers = usersWithRefreshedAvatars.map(user => 
-        UserMapperUtil.mapKeycloakUserToProfile(user)
+      // Récupérer les rôles pour chaque utilisateur
+      const mappedUsers = await Promise.all(
+        usersWithRefreshedAvatars.map(async (user) => {
+          try {
+            const userRoles = await this.keycloakService.getUserRoles(user.id);
+            const realmRoles = userRoles.map(role => role.name);
+            const clientRoles: string[] = []; // À implémenter si nécessaire
+            
+            return UserMapperUtil.mapKeycloakUserToProfile(user, realmRoles, clientRoles);
+          } catch (error) {
+            this.logger.warn(`Impossible de récupérer les rôles pour l'utilisateur ${user.id}`, error);
+            // En cas d'erreur, retourner l'utilisateur sans rôles
+            return UserMapperUtil.mapKeycloakUserToProfile(user, [], []);
+          }
+        })
       );
       
       return {
@@ -156,7 +172,25 @@ export class UsersService {
   async searchUsers(query: string): Promise<UserProfileDto[]> {
     try {
       const keycloakUsers = await this.keycloakService.searchUsers(query);
-      return keycloakUsers.map(user => UserMapperUtil.mapKeycloakUserToProfile(user));
+      
+      // Récupérer les rôles pour chaque utilisateur trouvé
+      const usersWithRoles = await Promise.all(
+        keycloakUsers.map(async (user) => {
+          try {
+            const userRoles = await this.keycloakService.getUserRoles(user.id);
+            const realmRoles = userRoles.map(role => role.name);
+            const clientRoles: string[] = []; // À implémenter si nécessaire
+            
+            return UserMapperUtil.mapKeycloakUserToProfile(user, realmRoles, clientRoles);
+          } catch (error) {
+            this.logger.warn(`Impossible de récupérer les rôles pour l'utilisateur ${user.id}`, error);
+            // En cas d'erreur, retourner l'utilisateur sans rôles
+            return UserMapperUtil.mapKeycloakUserToProfile(user, [], []);
+          }
+        })
+      );
+      
+      return usersWithRoles;
     } catch (error) {
       this.logger.error(`Erreur lors de la recherche d'utilisateurs: ${query}`, error);
       throw error;

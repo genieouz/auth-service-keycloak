@@ -101,10 +101,23 @@ export class UsersController {
   async getMyProfile(@CurrentUser() user: any) {
     try {
       const userProfile = await this.usersService.getUserById(user.userId);
+      
+      // Calculer les permissions comme dans le login
+      const permissions = {
+        canManageUsers: userProfile.roles.includes('admin'),
+        canViewUsers: userProfile.roles.includes('admin') || userProfile.roles.includes('moderator'),
+        isAdmin: userProfile.roles.includes('admin'),
+        isModerator: userProfile.roles.includes('moderator'),
+        isUser: userProfile.roles.includes('user') || userProfile.roles.length === 0,
+      };
+      
       return {
         success: true,
         message: 'Profil récupéré avec succès',
-        data: userProfile,
+        data: {
+          ...userProfile,
+          permissions,
+        },
       };
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération du profil ${user.userId}`, error);
