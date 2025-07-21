@@ -1,17 +1,29 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ConflictException, OnModuleInit } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { AssignPermissionsDto, AddPermissionsToRoleDto } from './dto/assign-permissions.dto';
 import { PermissionDefinition, UserPermissionAssignment, RolePermissionMapping, EXTENDED_SYSTEM_PERMISSIONS } from './interfaces/permission.interface';
 import { KeycloakService } from '../keycloak/keycloak.service';
+import { Permission, PermissionDocument } from './schemas/permission.schema';
 
 @Injectable()
-export class PermissionsService {
+export class PermissionsService implements OnModuleInit {
   private readonly logger = new Logger(PermissionsService.name);
   private permissions: Map<string, PermissionDefinition> = new Map();
 
-  constructor(private readonly keycloakService: KeycloakService) {
-    this.initializeSystemPermissions();
+  constructor(
+    private readonly keycloakService: KeycloakService,
+    @InjectModel(Permission.name) private permissionModel: Model<PermissionDocument>,
+  ) {}
+
+  /**
+   * Initialisation du module - charger les permissions depuis la base de données
+   */
+  async onModuleInit() {
+    await this.initializeSystemPermissions();
+    await this.loadPermissionsFromDatabase();
   }
 
   /**
@@ -27,16 +39,30 @@ export class PermissionsService {
       // Valider le format de la permission
       this.validatePermissionFormat(createPermissionDto.name);
 
-      const permission: PermissionDefinition = {
-        id: this.generatePermissionId(),
+      // Créer la permission dans MongoDB
+      const permissionDoc = new this.permissionModel({
         name: createPermissionDto.name,
         description: createPermissionDto.description,
         resource: createPermissionDto.resource,
         action: createPermissionDto.action,
         scope: createPermissionDto.scope,
         category: createPermissionDto.category || 'custom',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        isSystem: false,
+        customId: this.generatePermissionId(),
+      });
+
+      const savedPermission = await permissionDoc.save();
+
+      const permission: PermissionDefinition = {
+        id: savedPermission.customId,
+        name: createPermissionDto.name,
+        description: createPermissionDto.description,
+        resource: createPermissionDto.resource,
+        action: createPermissionDto.action,
+        scope: createPermissionDto.scope,
+        category: createPermissionDto.category || 'custom',
+        createdAt: savedPermission.createdAt,
+        updatedAt: savedPermission.updatedAt,
       };
 
       this.permissions.set(permission.name, permission);
@@ -90,6 +116,28 @@ export class PermissionsService {
         throw new BadRequestException('Impossible de modifier une permission système');
       }
 
+      // Mettre à jour dans MongoDB
+      const updateData: any = {};
+      if (updatePermissionDto.description !== undefined) {
+        updateData.description = updatePermissionDto.description;
+      }
+      if (updatePermissionDto.scope !== undefined) {
+        updateData.scope = updatePermissionDto.scope;
+      }
+      if (updatePermissionDto.category !== undefined) {
+        updateData.category = updatePermissionDto.category;
+      }
+
+      const updatedDoc = await this.permissionModel.findOneAndUpdate(
+        { customId: id },
+        updateData,
+        { new: true }
+      );
+
+      if (!updatedDoc) {
+        throw new NotFoundException(`Permission avec l'ID '${id}' non trouvée dans la base de données`);
+      }
+
       // Mettre à jour les champs
       if (updatePermissionDto.description !== undefined) {
         permission.description = updatePermissionDto.description;
@@ -101,7 +149,7 @@ export class PermissionsService {
         permission.category = updatePermissionDto.category;
       }
       
-      permission.updatedAt = new Date();
+      permission.updatedAt = updatedDoc.updatedAt;
 
       this.permissions.set(permission.name, permission);
       
@@ -143,6 +191,9 @@ export class PermissionsService {
           `Impossible de supprimer la permission '${permission.name}': utilisée par ${rolesUsingPermission.length} rôle(s)`
         );
       }
+
+      // Supprimer de MongoDB
+      await this.permissionModel.findOneAndDelete({ customId: id });
 
       this.permissions.delete(permission.name);
       
@@ -382,7 +433,63 @@ export class PermissionsService {
   /**
    * Initialiser les permissions système
    */
-  private initializeSystemPermissions(): void {
+  private async initializeSystemPermissions(): Promise<void> {
+    try {
+      // Vérifier et créer les permissions système dans MongoDB si elles n'existent pas
+      for (const [key, permissionName] of Object.entries(EXTENDED_SYSTEM_PERMISSIONS)) {
+        const existingPermission = await this.permissionModel.findOne({ name: permissionName });
+        
+        if (!existingPermission) {
+          const [resource, action, scope] = permissionName.split(':');
+          
+          const systemPermission = new this.permissionModel({
+            name: permissionName,
+            description: this.generatePermissionDescription(resource, action, scope),
+            resource,
+            action,
+            scope,
+            category: 'system',
+            isSystem: true,
+            customId: this.generatePermissionId(),
+          });
+          
+          await systemPermission.save();
+          this.logger.log(`Permission système créée en base: ${permissionName}`);
+        }
+      }
+      
+      // Charger toutes les permissions système dans la Map
+      const systemPermissions = await this.permissionModel.find({ isSystem: true });
+      
+      systemPermissions.forEach(permissionDoc => {
+        const permission: PermissionDefinition = {
+          id: permissionDoc.customId,
+          name: permissionDoc.name,
+          description: permissionDoc.description,
+          resource: permissionDoc.resource,
+          action: permissionDoc.action,
+          scope: permissionDoc.scope,
+          category: permissionDoc.category,
+          createdAt: permissionDoc.createdAt,
+          updatedAt: permissionDoc.updatedAt,
+        };
+        
+        this.permissions.set(permissionDoc.name, permission);
+      });
+      
+      this.logger.log(`${systemPermissions.length} permissions système initialisées depuis la base de données`);
+    } catch (error) {
+      this.logger.error('Erreur lors de l\'initialisation des permissions système', error);
+      
+      // Fallback: initialiser en mémoire seulement
+      this.initializeSystemPermissionsInMemory();
+    }
+  }
+
+  /**
+   * Initialiser les permissions système en mémoire (fallback)
+   */
+  private initializeSystemPermissionsInMemory(): void {
     Object.entries(EXTENDED_SYSTEM_PERMISSIONS).forEach(([key, permissionName]) => {
       const [resource, action, scope] = permissionName.split(':');
       
@@ -401,7 +508,36 @@ export class PermissionsService {
       this.permissions.set(permissionName, permission);
     });
 
-    this.logger.log(`${this.permissions.size} permissions système initialisées`);
+    this.logger.log(`${this.permissions.size} permissions système initialisées en mémoire (fallback)`);
+  }
+
+  /**
+   * Charger les permissions personnalisées depuis la base de données
+   */
+  private async loadPermissionsFromDatabase(): Promise<void> {
+    try {
+      const customPermissions = await this.permissionModel.find({ isSystem: false });
+      
+      customPermissions.forEach(permissionDoc => {
+        const permission: PermissionDefinition = {
+          id: permissionDoc.customId,
+          name: permissionDoc.name,
+          description: permissionDoc.description,
+          resource: permissionDoc.resource,
+          action: permissionDoc.action,
+          scope: permissionDoc.scope,
+          category: permissionDoc.category,
+          createdAt: permissionDoc.createdAt,
+          updatedAt: permissionDoc.updatedAt,
+        };
+        
+        this.permissions.set(permissionDoc.name, permission);
+      });
+      
+      this.logger.log(`${customPermissions.length} permissions personnalisées chargées depuis la base de données`);
+    } catch (error) {
+      this.logger.error('Erreur lors du chargement des permissions depuis la base de données', error);
+    }
   }
 
   /**
