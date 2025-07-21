@@ -421,9 +421,15 @@ export class KeycloakService {
     try {
       const adminToken = await this.getAdminToken();
       
+      // Récupérer d'abord les données complètes de l'utilisateur
+      const currentUser = await this.getUserById(userId);
+      
+      // Fusionner les nouvelles données avec les données existantes
+      const mergedUserData = this.mergeUserData(currentUser, userData);
+      
       await this.httpClient.put(
         `/admin/realms/${this.realm}/users/${userId}`,
-        userData,
+        mergedUserData,
         {
           headers: {
             Authorization: `Bearer ${adminToken}`,
@@ -949,5 +955,53 @@ export class KeycloakService {
     });
 
     return optimized;
+  }
+
+  /**
+   * Fusionner les données utilisateur partielles avec les données existantes
+   */
+  private mergeUserData(currentUser: KeycloakUser, partialUserData: Partial<KeycloakUser>): KeycloakUser {
+    // Commencer avec les données actuelles de l'utilisateur
+    const mergedUser: KeycloakUser = {
+      ...currentUser,
+    };
+
+    // Mettre à jour les champs principaux seulement s'ils sont fournis
+    if (partialUserData.email !== undefined) {
+      mergedUser.email = partialUserData.email;
+    }
+    if (partialUserData.firstName !== undefined) {
+      mergedUser.firstName = partialUserData.firstName;
+    }
+    if (partialUserData.lastName !== undefined) {
+      mergedUser.lastName = partialUserData.lastName;
+    }
+    if (partialUserData.enabled !== undefined) {
+      mergedUser.enabled = partialUserData.enabled;
+    }
+    if (partialUserData.emailVerified !== undefined) {
+      mergedUser.emailVerified = partialUserData.emailVerified;
+    }
+
+    // Fusionner les attributs personnalisés
+    if (partialUserData.attributes) {
+      mergedUser.attributes = {
+        ...currentUser.attributes,
+        ...partialUserData.attributes,
+      };
+    }
+
+    // Fusionner les credentials si fournis
+    if (partialUserData.credentials) {
+      mergedUser.credentials = partialUserData.credentials;
+    }
+
+    this.logger.debug(`Données fusionnées pour l'utilisateur ${currentUser.id}:`, {
+      originalFields: Object.keys(currentUser),
+      updatedFields: Object.keys(partialUserData),
+      mergedFields: Object.keys(mergedUser),
+    });
+
+    return mergedUser;
   }
 }
