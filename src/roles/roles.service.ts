@@ -26,23 +26,19 @@ export class RolesService {
       this.validatePermissions(createRoleDto.permissions);
 
       // Créer le rôle dans Keycloak
-      const roleId = await this.keycloakService.createRole({
+      await this.keycloakService.updateRole(createRoleDto.name, {
         name: createRoleDto.name,
-      }
-      )
-      // Mettre à jour le rôle dans Keycloak avec toutes les données existantes
-      await this.keycloakService.updateRole(roleName, {
+        description: createRoleDto.description,
+        composite: createRoleDto.composite || false,
         name: role.name,
-      }
-      )
-      // Mettre à jour le rôle dans Keycloak avec toutes les données existantes
-      await this.keycloakService.updateRole(roleName, {
+        description: role.description,
+        composite: role.composite,
         name: role.name,
         description: role.description,
         composite: role.composite,
         attributes: {
-          ...role.attributes,
-          permissions: updatedPermissions,
+          permissions: createRoleDto.permissions,
+          ...(createRoleDto.attributes || {}),
         },
       });
 
