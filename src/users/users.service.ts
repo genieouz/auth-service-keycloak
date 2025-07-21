@@ -128,7 +128,6 @@ export class UsersService {
     try {
       // Utiliser le mapper pour convertir les données
       const keycloakUserData = UserMapperUtil.mapUpdateDtoToKeycloak(updateUserDto);
-
       // Mettre à jour dans Keycloak
       await this.keycloakService.updateUser(userId, keycloakUserData);
       

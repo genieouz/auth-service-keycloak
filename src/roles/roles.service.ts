@@ -126,9 +126,11 @@ export class RolesService {
 
       // Préparer les données de mise à jour
       const updateData: any = {
+        name: existingRole.name,
         description: updateRoleDto.description || existingRole.description,
         composite: updateRoleDto.composite !== undefined ? updateRoleDto.composite : existingRole.composite,
       };
+      
 
       // Mettre à jour les attributs
       if (updateRoleDto.permissions || updateRoleDto.attributes) {
@@ -137,7 +139,6 @@ export class RolesService {
           ...(updateRoleDto.attributes || existingRole.attributes || {}),
         };
       }
-
       // Mettre à jour dans Keycloak
       await this.keycloakService.updateRole(roleName, updateData);
 

@@ -338,7 +338,6 @@ export class PermissionsService implements OnModuleInit {
           throw new BadRequestException(`Permission '${permissionName}' non trouvée`);
         }
       }
-
       // Récupérer les permissions actuelles du rôle
       const currentPermissions = role.attributes?.permissions || [];
       
@@ -347,6 +346,7 @@ export class PermissionsService implements OnModuleInit {
 
       // Mettre à jour le rôle dans Keycloak
       await this.keycloakService.updateRole(roleName, {
+        ...role,
         attributes: {
           ...role.attributes,
           permissions: allPermissions,
