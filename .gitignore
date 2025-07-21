@@ -401,3 +401,4 @@ dist
 dist/
 .webpack
 .serverless/**/*.zip
+.windsurf

@@ -61,8 +61,8 @@ export class PermissionsService implements OnModuleInit {
         action: createPermissionDto.action,
         scope: createPermissionDto.scope,
         category: createPermissionDto.category || 'custom',
-        createdAt: savedPermission.createdAt,
-        updatedAt: savedPermission.updatedAt || savedPermission.createdAt,
+        createdAt: (savedPermission as any).createdAt || new Date(),
+        updatedAt: (savedPermission as any).updatedAt || (savedPermission as any).createdAt || new Date(),
       };
 
       this.permissions.set(permission.name, permission);
@@ -149,7 +149,7 @@ export class PermissionsService implements OnModuleInit {
         permission.category = updatePermissionDto.category;
       }
       
-      permission.updatedAt = updatedDoc.updatedAt || new Date();
+      permission.updatedAt = (updatedDoc as any).updatedAt || new Date();
 
       this.permissions.set(permission.name, permission);
       
@@ -470,8 +470,8 @@ export class PermissionsService implements OnModuleInit {
           action: permissionDoc.action,
           scope: permissionDoc.scope,
           category: permissionDoc.category,
-          createdAt: permissionDoc.createdAt,
-          updatedAt: permissionDoc.updatedAt || permissionDoc.createdAt,
+          createdAt: (permissionDoc as any).createdAt || new Date(),
+          updatedAt: (permissionDoc as any).updatedAt || (permissionDoc as any).createdAt || new Date(),
         };
         
         this.permissions.set(permissionDoc.name, permission);
@@ -527,8 +527,8 @@ export class PermissionsService implements OnModuleInit {
           action: permissionDoc.action,
           scope: permissionDoc.scope,
           category: permissionDoc.category,
-          createdAt: permissionDoc.createdAt,
-          updatedAt: permissionDoc.updatedAt || permissionDoc.createdAt,
+          createdAt: (permissionDoc as any).createdAt || new Date(),
+          updatedAt: (permissionDoc as any).updatedAt || (permissionDoc as any).createdAt || new Date(),
         };
         
         this.permissions.set(permissionDoc.name, permission);
