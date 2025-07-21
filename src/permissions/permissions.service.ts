@@ -471,7 +471,7 @@ export class PermissionsService implements OnModuleInit {
           scope: permissionDoc.scope,
           category: permissionDoc.category,
           createdAt: permissionDoc.createdAt,
-          updatedAt: permissionDoc.updatedAt,
+          updatedAt: permissionDoc.updatedAt || permissionDoc.createdAt,
         };
         
         this.permissions.set(permissionDoc.name, permission);
@@ -528,7 +528,7 @@ export class PermissionsService implements OnModuleInit {
           scope: permissionDoc.scope,
           category: permissionDoc.category,
           createdAt: permissionDoc.createdAt,
-          updatedAt: permissionDoc.updatedAt,
+          updatedAt: permissionDoc.updatedAt || permissionDoc.createdAt,
         };
         
         this.permissions.set(permissionDoc.name, permission);
