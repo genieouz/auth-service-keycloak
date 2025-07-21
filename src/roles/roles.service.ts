@@ -28,9 +28,13 @@ export class RolesService {
       // Créer le rôle dans Keycloak
       const roleId = await this.keycloakService.createRole({
         name: createRoleDto.name,
+      }
+      )
       // Mettre à jour le rôle dans Keycloak avec toutes les données existantes
       await this.keycloakService.updateRole(roleName, {
         name: role.name,
+      }
+      )
       // Mettre à jour le rôle dans Keycloak avec toutes les données existantes
       await this.keycloakService.updateRole(roleName, {
         name: role.name,
