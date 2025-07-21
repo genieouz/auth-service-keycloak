@@ -62,7 +62,7 @@ export class PermissionsService implements OnModuleInit {
         scope: createPermissionDto.scope,
         category: createPermissionDto.category || 'custom',
         createdAt: savedPermission.createdAt,
-        updatedAt: savedPermission.updatedAt,
+        updatedAt: savedPermission.updatedAt || savedPermission.createdAt,
       };
 
       this.permissions.set(permission.name, permission);
@@ -149,7 +149,7 @@ export class PermissionsService implements OnModuleInit {
         permission.category = updatePermissionDto.category;
       }
       
-      permission.updatedAt = updatedDoc.updatedAt;
+      permission.updatedAt = updatedDoc.updatedAt || new Date();
 
       this.permissions.set(permission.name, permission);
       
