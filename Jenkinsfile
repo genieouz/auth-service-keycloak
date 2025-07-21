@@ -47,7 +47,7 @@ dockerBuild([
     // Enable Helm chart updates
     updateHelmChart: true,
     helmChart: [
-        gitUrl: 'https://gitlab.com:senum1/charts/services.git',
+        gitUrl: 'https://gitlab.com/senum1/charts/services.git',
         gitBranch: 'main',
         gitCredentialsId: 'gitlab-cred-eyone',
         chartPath: 'production',              // Folder containing values.yaml
