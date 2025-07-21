@@ -124,25 +124,30 @@ export class RolesService {
         this.validatePermissions(updateRoleDto.permissions);
       }
 
-      // Préparer les données de mise à jour
-      const updateData: any = {
-        description: updateRoleDto.description || existingRole.description,
+      // Fusionner les données existantes avec les nouvelles données
+      const mergedRoleData: any = {
+        name: existingRole.name, // Le nom ne change pas
+        description: updateRoleDto.description !== undefined ? updateRoleDto.description : existingRole.description,
         composite: updateRoleDto.composite !== undefined ? updateRoleDto.composite : existingRole.composite,
       };
 
-      // Mettre à jour les attributs
-      if (updateRoleDto.permissions || updateRoleDto.attributes) {
-        updateData.attributes = {
-          permissions: updateRoleDto.permissions || existingRole.permissions,
-          ...(updateRoleDto.attributes || existingRole.attributes || {}),
-        };
-      }
+      // Fusionner les attributs (permissions et attributs personnalisés)
+      const existingAttributes = existingRole.attributes || {};
+      const newAttributes = updateRoleDto.attributes || {};
+      
+      mergedRoleData.attributes = {
+        // Conserver les permissions existantes si aucune nouvelle permission n'est fournie
+        permissions: updateRoleDto.permissions !== undefined ? updateRoleDto.permissions : existingRole.permissions,
+        // Fusionner les attributs personnalisés (les nouveaux écrasent les anciens)
+        ...existingAttributes,
+        ...newAttributes,
+      };
 
       // Mettre à jour dans Keycloak
-      await this.keycloakService.updateRole(roleName, updateData);
+      await this.keycloakService.updateRole(roleName, mergedRoleData);
 
       // Gérer les rôles enfants si c'est un rôle composite
-      if (updateRoleDto.composite && updateRoleDto.childRoles) {
+      if (updateRoleDto.childRoles !== undefined) {
         await this.updateChildRoles(roleName, updateRoleDto.childRoles);
       }
 
@@ -464,14 +469,22 @@ export class RolesService {
       // Rôles à retirer
       const rolesToRemove = currentChildRoles.filter(role => !newChildRoleNames.includes(role));
 
+      this.logger.debug(`Mise à jour des rôles enfants pour ${parentRoleName}:`, {
+        current: currentChildRoles,
+        new: newChildRoleNames,
+        toAdd: rolesToAdd,
+        toRemove: rolesToRemove,
+      });
       // Ajouter les nouveaux rôles
       if (rolesToAdd.length > 0) {
         await this.keycloakService.addCompositeRoles(parentRoleName, rolesToAdd);
+        this.logger.log(`Rôles enfants ajoutés à ${parentRoleName}: ${rolesToAdd.join(', ')}`);
       }
 
       // Retirer les anciens rôles
       if (rolesToRemove.length > 0) {
         await this.keycloakService.removeCompositeRoles(parentRoleName, rolesToRemove);
+        this.logger.log(`Rôles enfants retirés de ${parentRoleName}: ${rolesToRemove.join(', ')}`);
       }
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour des rôles enfants de ${parentRoleName}`, error);
