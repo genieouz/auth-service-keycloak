@@ -54,8 +54,6 @@ dockerBuild([
         imageTagPath: 'image.tag',             // Path in YAML to update
         valuesFile: 'values-senegal-service-auth-api.yaml'              // Values file name (optional, defaults to values.yaml)
     ],
-
-/
     // Notifications
     enableNotifications: false,
     slackChannel: '#deployments',
