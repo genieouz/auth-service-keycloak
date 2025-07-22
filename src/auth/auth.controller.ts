@@ -278,7 +278,8 @@ export class AuthController {
                 isUser: { type: 'boolean', example: false }
               },
               required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
-          },
+                      },
+          }
           required: ['session', 'user', 'permissions']
           required: ['session', 'user', 'permissions']
         }
@@ -412,6 +413,7 @@ export class AuthController {
           properties: {
             required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
           }
+        }
         required: ['success', 'message', 'data']
       }
     }
