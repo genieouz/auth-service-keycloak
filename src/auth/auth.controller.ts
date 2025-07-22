@@ -72,7 +72,22 @@ export class AuthController {
   @ApiResponse({ 
     status: 201, 
     description: 'Utilisateur créé avec succès',
-    type: ApiResponseDto
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur créé et connecté avec succès' },
+        data: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+            session: { $ref: '#/components/schemas/SessionResponseDto' },
+            user: { $ref: '#/components/schemas/UserProfileDto' },
+            permissions: { $ref: '#/components/schemas/PermissionsDto' }
+          }
+        }
+      }
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -165,7 +180,23 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Connexion réussie',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Connexion réussie' },
+        data: {
+          type: 'object',
+          properties: {
+            session: { $ref: '#/components/schemas/SessionResponseDto' },
+            user: { $ref: '#/components/schemas/UserProfileDto' },
+            permissions: { $ref: '#/components/schemas/PermissionsDto' }
+          },
+          required: ['session', 'user', 'permissions']
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -204,7 +235,15 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Token rafraîchi avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Token rafraîchi avec succès' },
+        data: { $ref: '#/components/schemas/SessionResponseDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 401, 
@@ -233,7 +272,14 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Mot de passe changé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Mot de passe changé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -267,7 +313,19 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Code de réinitialisation envoyé',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Code de réinitialisation envoyé par email' },
+        data: {
+          type: 'object',
+          properties: {
+            expiresAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:40:00.000Z' }
+          }
+        }
+      }
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -300,7 +358,14 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Mot de passe réinitialisé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Mot de passe réinitialisé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -327,7 +392,14 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Déconnexion réussie',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Déconnexion réussie' }
+      },
+      required: ['success', 'message']
+    }
   })
   async logout(@CurrentUser() user: any) {
     try {
