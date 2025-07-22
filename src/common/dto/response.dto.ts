@@ -277,37 +277,72 @@ export class UserProfileDto {
   @ApiProperty({ 
     description: 'Autres attributs personnalisés définis par l\'application', 
     required: false,
-    example: { 'departement': 'IT', 'niveau_acces': 'standard' }
+    example: { 
+      'directPermissions': ['users:read', 'users:create'],
+      'departement': 'IT', 
+      'niveau_acces': 'standard' 
+    }
   })
   customAttributes?: { [key: string]: any };
 }
 
 export class PermissionsDto {
-  @ApiProperty({ description: 'Toutes les permissions effectives de l\'utilisateur', type: [String] })
+  @ApiProperty({ 
+    description: 'Toutes les permissions effectives de l\'utilisateur (rôles + directes)', 
+    type: [String],
+    example: ['users:read', 'users:create', 'documents:read']
+  })
   effectivePermissions: string[];
 
-  @ApiProperty({ description: 'Permissions héritées des rôles', type: [String] })
+  @ApiProperty({ 
+    description: 'Permissions héritées des rôles', 
+    type: [String],
+    example: ['documents:read']
+  })
   rolePermissions: string[];
 
-  @ApiProperty({ description: 'Permissions assignées directement', type: [String] })
+  @ApiProperty({ 
+    description: 'Permissions assignées directement à l\'utilisateur', 
+    type: [String],
+    example: ['users:read', 'users:create']
+  })
   directPermissions: string[];
 
-  @ApiProperty({ description: 'Rôles de l\'utilisateur', type: [String] })
+  @ApiProperty({ 
+    description: 'Rôles de l\'utilisateur', 
+    type: [String],
+    example: ['default-roles-senegal services', 'admin']
+  })
   roles: string[];
 
-  @ApiProperty({ description: 'Peut gérer les utilisateurs' })
+  @ApiProperty({ 
+    description: 'Peut gérer les utilisateurs',
+    example: true
+  })
   canManageUsers: boolean;
 
-  @ApiProperty({ description: 'Peut voir les utilisateurs' })
+  @ApiProperty({ 
+    description: 'Peut voir les utilisateurs',
+    example: true
+  })
   canViewUsers: boolean;
 
-  @ApiProperty({ description: 'Est administrateur' })
+  @ApiProperty({ 
+    description: 'Est administrateur',
+    example: true
+  })
   isAdmin: boolean;
 
-  @ApiProperty({ description: 'Est modérateur' })
+  @ApiProperty({ 
+    description: 'Est modérateur',
+    example: false
+  })
   isModerator: boolean;
 
-  @ApiProperty({ description: 'Est utilisateur standard' })
+  @ApiProperty({ 
+    description: 'Est utilisateur standard',
+    example: false
+  })
   isUser: boolean;
 }
 
