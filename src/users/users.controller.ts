@@ -113,17 +113,98 @@ export class UsersController {
         success: { type: 'boolean', example: true },
         message: { type: 'string', example: 'Profil et permissions récupérés avec succès' },
         data: {
-          allOf: [
-            { $ref: '#/components/schemas/UserProfileDto' },
-            {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+            username: { type: 'string', example: 'genieouzog+2@gmail.com' },
+            email: { type: 'string', example: 'genieouzog+2@gmail.com' },
+            firstName: { type: 'string', example: 'Amadou N.' },
+            lastName: { type: 'string', example: 'Diallo' },
+            enabled: { type: 'boolean', example: true },
+            emailVerified: { type: 'boolean', example: true },
+            roles: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: ['default-roles-senegal services', 'admin']
+            },
+            clientRoles: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: []
+            },
+            registrationDate: { type: 'string', format: 'date-time', example: '2025-07-22T18:56:27.806Z' },
+            phone: { type: 'string', example: '+221771234567', required: false },
+            birthDate: { type: 'string', format: 'date', example: '1990-05-15', required: false },
+            gender: { type: 'string', enum: ['M', 'F', 'Autre'], example: 'M', required: false },
+            address: { type: 'string', example: '123 Avenue Bourguiba, Plateau', required: false },
+            city: { type: 'string', example: 'Dakar', required: false },
+            postalCode: { type: 'string', example: '10000', required: false },
+            country: { type: 'string', example: 'Sénégal', required: false },
+            profession: { type: 'string', example: 'Développeur Full Stack', required: false },
+            acceptTerms: { type: 'boolean', example: true },
+            acceptPrivacyPolicy: { type: 'boolean', example: true },
+            acceptMarketing: { type: 'boolean', example: false, required: false },
+            accountType: { type: 'string', enum: ['email', 'phone'], example: 'email', required: false },
+            avatarUrl: { 
+              type: 'string', 
+              example: 'https://senegalservices.minio.api.sandbox.topatoko.com/senegal-service-auth/avatars/4c2cd50b-6be8-4c72-b306-353987c94100/c94f1186-b415-411c-8f30-a48568e863da.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=cwsLWoQcHVSi7OVS%2F20250722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250722T185627Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=f2cecb80ff9c3136add48c413f18baec5f541a9550ad42006ff17ac37c00ae44',
+              required: false 
+            },
+            customAttributes: {
               type: 'object',
               properties: {
-                permissions: { $ref: '#/components/schemas/PermissionsDto' }
-              }
+                directPermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['users:read', 'users:create']
+                }
+              },
+              additionalProperties: true,
+              example: {
+                directPermissions: ['users:read', 'users:create']
+              },
+              required: false
+            },
+            permissions: {
+              type: 'object',
+              properties: {
+                effectivePermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['users:read', 'users:create'],
+                  description: 'Toutes les permissions effectives de l\'utilisateur (rôles + directes)'
+                },
+                rolePermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: [],
+                  description: 'Permissions héritées des rôles'
+                },
+                directPermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['users:read', 'users:create'],
+                  description: 'Permissions assignées directement à l\'utilisateur'
+                },
+                roles: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['default-roles-senegal services', 'admin'],
+                  description: 'Rôles de l\'utilisateur'
+                },
+                canManageUsers: { type: 'boolean', example: true },
+                canViewUsers: { type: 'boolean', example: true },
+                isAdmin: { type: 'boolean', example: true },
+                isModerator: { type: 'boolean', example: false },
+                isUser: { type: 'boolean', example: false }
+              },
+              required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
             }
-          ]
+          },
+          required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate', 'acceptTerms', 'acceptPrivacyPolicy', 'permissions']
         }
-      }
+      },
+      required: ['success', 'message', 'data']
     }
   })
   @ApiResponse({ 

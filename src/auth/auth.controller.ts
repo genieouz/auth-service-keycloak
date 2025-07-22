@@ -80,10 +80,54 @@ export class AuthController {
         data: {
           type: 'object',
           properties: {
-            userId: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
-            session: { $ref: '#/components/schemas/SessionResponseDto' },
-            user: { $ref: '#/components/schemas/UserProfileDto' },
-            permissions: { $ref: '#/components/schemas/PermissionsDto' }
+            userId: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+            session: {
+              type: 'object',
+              properties: {
+                access_token: { type: 'string', example: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJrZXlJZCJ9...' },
+                token_type: { type: 'string', example: 'Bearer' },
+                expires_in: { type: 'number', example: 3600 },
+                refresh_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJyZWZyZXNoS2V5In0...' },
+                scope: { type: 'string', example: 'openid profile email offline_access' },
+                issuedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
+                expiresAt: { type: 'string', format: 'date-time', example: '2024-01-15T11:30:00.000Z' },
+                remainingTime: { type: 'number', example: 3540 },
+                isExpiringSoon: { type: 'boolean', example: false },
+                audience: { type: 'array', items: { type: 'string' }, example: ['account', 'senegalservices_client'] }
+              },
+              required: false
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+                username: { type: 'string', example: 'amadou.diallo@example.com' },
+                email: { type: 'string', example: 'amadou.diallo@example.com' },
+                firstName: { type: 'string', example: 'Amadou' },
+                lastName: { type: 'string', example: 'Diallo' },
+                enabled: { type: 'boolean', example: true },
+                emailVerified: { type: 'boolean', example: true },
+                roles: { type: 'array', items: { type: 'string' }, example: ['user', 'gestionnaire_documents'] },
+                clientRoles: { type: 'array', items: { type: 'string' }, example: ['app_user'] },
+                registrationDate: { type: 'string', format: 'date-time', example: '2024-01-10T08:00:00.000Z' }
+              },
+              required: false
+            },
+            permissions: {
+              type: 'object',
+              properties: {
+                effectivePermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create', 'documents:read'] },
+                rolePermissions: { type: 'array', items: { type: 'string' }, example: ['documents:read'] },
+                directPermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create'] },
+                roles: { type: 'array', items: { type: 'string' }, example: ['default-roles-senegal services', 'admin'] },
+                canManageUsers: { type: 'boolean', example: true },
+                canViewUsers: { type: 'boolean', example: true },
+                isAdmin: { type: 'boolean', example: true },
+                isModerator: { type: 'boolean', example: false },
+                isUser: { type: 'boolean', example: false }
+              },
+              required: false
+            }
           }
         }
       }
@@ -188,9 +232,53 @@ export class AuthController {
         data: {
           type: 'object',
           properties: {
-            session: { $ref: '#/components/schemas/SessionResponseDto' },
-            user: { $ref: '#/components/schemas/UserProfileDto' },
-            permissions: { $ref: '#/components/schemas/PermissionsDto' }
+            session: {
+              type: 'object',
+              properties: {
+                access_token: { type: 'string', example: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJrZXlJZCJ9...' },
+                token_type: { type: 'string', example: 'Bearer' },
+                expires_in: { type: 'number', example: 3600 },
+                refresh_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJyZWZyZXNoS2V5In0...' },
+                scope: { type: 'string', example: 'openid profile email offline_access' },
+                issuedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
+                expiresAt: { type: 'string', format: 'date-time', example: '2024-01-15T11:30:00.000Z' },
+                remainingTime: { type: 'number', example: 3540 },
+                isExpiringSoon: { type: 'boolean', example: false },
+                audience: { type: 'array', items: { type: 'string' }, example: ['account', 'senegalservices_client'] }
+              },
+              required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+                username: { type: 'string', example: 'amadou.diallo@example.com' },
+                email: { type: 'string', example: 'amadou.diallo@example.com' },
+                firstName: { type: 'string', example: 'Amadou' },
+                lastName: { type: 'string', example: 'Diallo' },
+                enabled: { type: 'boolean', example: true },
+                emailVerified: { type: 'boolean', example: true },
+                roles: { type: 'array', items: { type: 'string' }, example: ['user', 'gestionnaire_documents'] },
+                clientRoles: { type: 'array', items: { type: 'string' }, example: ['app_user'] },
+                registrationDate: { type: 'string', format: 'date-time', example: '2024-01-10T08:00:00.000Z' }
+              },
+              required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
+            },
+            permissions: {
+              type: 'object',
+              properties: {
+                effectivePermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create', 'documents:read'] },
+                rolePermissions: { type: 'array', items: { type: 'string' }, example: ['documents:read'] },
+                directPermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create'] },
+                roles: { type: 'array', items: { type: 'string' }, example: ['default-roles-senegal services', 'admin'] },
+                canManageUsers: { type: 'boolean', example: true },
+                canViewUsers: { type: 'boolean', example: true },
+                isAdmin: { type: 'boolean', example: true },
+                isModerator: { type: 'boolean', example: false },
+                isUser: { type: 'boolean', example: false }
+              },
+              required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
+            }
           },
           required: ['session', 'user', 'permissions']
         }
