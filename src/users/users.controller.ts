@@ -87,11 +87,11 @@ export class UsersController {
   @Get('me')
   @ApiOperation({ 
     summary: 'Récupérer son profil utilisateur',
-    description: 'Récupère les informations du profil de l\'utilisateur connecté'
+    description: 'Récupère les informations du profil de l\'utilisateur connecté avec ses permissions'
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Profil utilisateur récupéré avec succès',
+    description: 'Profil utilisateur et permissions récupérés avec succès',
     type: ApiResponseDto 
   })
   @ApiResponse({ 
@@ -102,21 +102,15 @@ export class UsersController {
     try {
       const userProfile = await this.usersService.getUserById(user.userId);
       
-      // Calculer les permissions comme dans le login
-      const permissions = {
-        canManageUsers: userProfile.roles.includes('admin'),
-        canViewUsers: userProfile.roles.includes('admin') || userProfile.roles.includes('moderator'),
-        isAdmin: userProfile.roles.includes('admin'),
-        isModerator: userProfile.roles.includes('moderator'),
-        isUser: userProfile.roles.includes('user') || userProfile.roles.length === 0,
-      };
+      // Récupérer les permissions complètes de l'utilisateur
+      const userPermissions = await this.usersService.getUserPermissions(user.userId);
       
       return {
         success: true,
-        message: 'Profil récupéré avec succès',
+        message: 'Profil et permissions récupérés avec succès',
         data: {
           ...userProfile,
-          permissions,
+          permissions: userPermissions,
         },
       };
     } catch (error) {
