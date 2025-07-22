@@ -11,6 +11,7 @@ import { VerifyOtpDto } from '../otp/dto/verify-otp.dto';
 import { KeycloakUser, KeycloakTokenResponse } from '../common/interfaces/keycloak.interface';
 import { SessionResponseDto, UserProfileDto, PermissionsDto } from '../common/dto/response.dto';
 import { UserMapperUtil } from '../common/utils/user-mapper.util';
+import { RolesService } from '../roles/roles.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly otpService: OtpService,
     private readonly keycloakService: KeycloakService,
+    private readonly rolesService: RolesService,
   ) {}
 
   /**
@@ -292,14 +294,8 @@ export class AuthService {
       decodedToken.resource_access?.[process.env.KEYCLOAK_USER_CLIENT_ID]?.roles || []
     );
 
-    // Calculer les permissions
-    const permissions: PermissionsDto = {
-      canManageUsers: user.roles.includes('admin'),
-      canViewUsers: user.roles.includes('admin') || user.roles.includes('moderator'),
-      isAdmin: user.roles.includes('admin'),
-      isModerator: user.roles.includes('moderator'),
-      isUser: user.roles.includes('user') || user.roles.length === 0,
-    };
+    // Calculer les permissions réelles basées sur les rôles et leurs permissions
+    const permissions: PermissionsDto = await this.calculateUserPermissions(decodedToken.sub);
 
     return { session, user, permissions };
   }
@@ -525,6 +521,66 @@ export class AuthService {
     return processed;
   }
 
+  /**
+   * Calculer les permissions réelles d'un utilisateur
+   */
+  private async calculateUserPermissions(userId: string): Promise<PermissionsDto> {
+    try {
+      // Récupérer les rôles de l'utilisateur
+      const userRoles = await this.keycloakService.getUserRoles(userId);
+      const roleNames = userRoles.map(role => role.name);
+      
+      // Calculer les permissions par rôles
+      const rolePermissions: string[] = [];
+      for (const role of userRoles) {
+        const rolePerms = role.attributes?.permissions || [];
+        rolePermissions.push(...rolePerms);
+      }
+      
+      // Récupérer les permissions directes
+      const user = await this.keycloakService.getUserById(userId);
+      const directPermissions = user.attributes?.directPermissions || [];
+      
+      // Permissions effectives (toutes les permissions uniques)
+      const effectivePermissions = [...new Set([...rolePermissions, ...directPermissions])];
+      
+      // Calculer les permissions héritées pour la compatibilité
+      const canManageUsers = roleNames.includes('admin') || roleNames.includes('super_admin') || 
+                            effectivePermissions.includes('users:manage');
+      const canViewUsers = canManageUsers || roleNames.includes('moderator') || 
+                          effectivePermissions.includes('users:read');
+      const isAdmin = roleNames.includes('admin') || roleNames.includes('super_admin');
+      const isModerator = roleNames.includes('moderator');
+      const isUser = roleNames.includes('user') || roleNames.length === 0;
+      
+      return {
+        effectivePermissions,
+        rolePermissions: [...new Set(rolePermissions)],
+        directPermissions,
+        roles: roleNames,
+        canManageUsers,
+        canViewUsers,
+        isAdmin,
+        isModerator,
+        isUser,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors du calcul des permissions pour l'utilisateur ${userId}`, error);
+      
+      // Fallback en cas d'erreur
+      return {
+        effectivePermissions: [],
+        rolePermissions: [],
+        directPermissions: [],
+        roles: [],
+        canManageUsers: false,
+        canViewUsers: false,
+        isAdmin: false,
+        isModerator: false,
+        isUser: true,
+      };
+    }
+  }
   /**
    * Construire un objet utilisateur optimisé pour Keycloak
    */

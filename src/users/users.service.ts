@@ -288,7 +288,6 @@ export class UsersService {
     rolePermissions: string[];
     directPermissions: string[];
     roles: string[];
-    // Permissions calculées pour la compatibilité
     canManageUsers: boolean;
     canViewUsers: boolean;
     isAdmin: boolean;
@@ -296,9 +295,6 @@ export class UsersService {
     isUser: boolean;
   }> {
     try {
-      // Récupérer toutes les permissions de l'utilisateur
-      const userPermissions = await this.permissionsService.getAllUserPermissions(userId);
-      
       // Récupérer les rôles de l'utilisateur
       const userRoles = await this.keycloakService.getUserRoles(userId);
       const roleNames = userRoles.map(role => role.name);
