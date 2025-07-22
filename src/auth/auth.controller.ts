@@ -279,6 +279,7 @@ export class AuthController {
               },
               required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
             }
+            required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
           },
           required: ['session', 'user', 'permissions']
         }
@@ -394,7 +395,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
-    summary: 'Demander la réinitialisation du mot de passe',
+            required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
     description: 'Envoie un code OTP pour réinitialiser le mot de passe'
   })
   @ApiBody({ type: ForgotPasswordDto })
@@ -409,7 +410,7 @@ export class AuthController {
         data: {
           type: 'object',
           properties: {
-            expiresAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:40:00.000Z' }
+            required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
           }
         }
       }

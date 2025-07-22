@@ -133,22 +133,21 @@ export class UsersController {
               example: []
             },
             registrationDate: { type: 'string', format: 'date-time', example: '2025-07-22T18:56:27.806Z' },
-            phone: { type: 'string', example: '+221771234567', required: false },
-            birthDate: { type: 'string', format: 'date', example: '1990-05-15', required: false },
-            gender: { type: 'string', enum: ['M', 'F', 'Autre'], example: 'M', required: false },
-            address: { type: 'string', example: '123 Avenue Bourguiba, Plateau', required: false },
-            city: { type: 'string', example: 'Dakar', required: false },
-            postalCode: { type: 'string', example: '10000', required: false },
-            country: { type: 'string', example: 'Sénégal', required: false },
-            profession: { type: 'string', example: 'Développeur Full Stack', required: false },
+            phone: { type: 'string', example: '+221771234567' },
+            birthDate: { type: 'string', format: 'date', example: '1990-05-15' },
+            gender: { type: 'string', enum: ['M', 'F', 'Autre'], example: 'M' },
+            address: { type: 'string', example: '123 Avenue Bourguiba, Plateau' },
+            city: { type: 'string', example: 'Dakar' },
+            postalCode: { type: 'string', example: '10000' },
+            country: { type: 'string', example: 'Sénégal' },
+            profession: { type: 'string', example: 'Développeur Full Stack' },
             acceptTerms: { type: 'boolean', example: true },
             acceptPrivacyPolicy: { type: 'boolean', example: true },
-            acceptMarketing: { type: 'boolean', example: false, required: false },
-            accountType: { type: 'string', enum: ['email', 'phone'], example: 'email', required: false },
+            acceptMarketing: { type: 'boolean', example: false },
+            accountType: { type: 'string', enum: ['email', 'phone'], example: 'email' },
             avatarUrl: { 
               type: 'string', 
               example: 'https://senegalservices.minio.api.sandbox.topatoko.com/senegal-service-auth/avatars/4c2cd50b-6be8-4c72-b306-353987c94100/c94f1186-b415-411c-8f30-a48568e863da.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=cwsLWoQcHVSi7OVS%2F20250722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250722T185627Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=f2cecb80ff9c3136add48c413f18baec5f541a9550ad42006ff17ac37c00ae44',
-              required: false 
             },
             customAttributes: {
               type: 'object',
@@ -163,7 +162,6 @@ export class UsersController {
               example: {
                 directPermissions: ['users:read', 'users:create']
               },
-              required: false
             },
             permissions: {
               type: 'object',
