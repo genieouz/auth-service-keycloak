@@ -278,6 +278,7 @@ export class AuthController {
                 isUser: { type: 'boolean', example: false }
               },
               required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
+            }
             required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
           },
           required: ['session', 'user', 'permissions']
