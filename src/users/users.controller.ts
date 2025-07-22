@@ -56,7 +56,22 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Liste des utilisateurs récupérée avec succès',
-    type: PaginatedResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateurs récupérés avec succès' },
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/UserProfileDto' }
+        },
+        total: { type: 'number', example: 150 },
+        page: { type: 'number', example: 0 },
+        limit: { type: 'number', example: 20 },
+        totalPages: { type: 'number', example: 8 }
+      },
+      required: ['success', 'message', 'data', 'total', 'page', 'limit', 'totalPages']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -92,7 +107,24 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Profil utilisateur et permissions récupérés avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Profil et permissions récupérés avec succès' },
+        data: {
+          allOf: [
+            { $ref: '#/components/schemas/UserProfileDto' },
+            {
+              type: 'object',
+              properties: {
+                permissions: { $ref: '#/components/schemas/PermissionsDto' }
+              }
+            }
+          ]
+        }
+      }
+    }
   })
   @ApiResponse({ 
     status: 401, 
@@ -128,7 +160,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Profil mis à jour avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Profil mis à jour avec succès' },
+        data: { $ref: '#/components/schemas/UserProfileDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -166,7 +206,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar uploadé avec succès',
-    type: AvatarResponseDto
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar uploadé avec succès' },
+        data: { $ref: '#/components/schemas/AvatarResponseDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -203,7 +251,14 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar supprimé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar supprimé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 401, 
@@ -236,7 +291,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Utilisateur trouvé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur trouvé avec succès' },
+        data: { $ref: '#/components/schemas/UserProfileDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -275,7 +338,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Utilisateur mis à jour avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur mis à jour avec succès' },
+        data: { $ref: '#/components/schemas/UserProfileDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -320,7 +391,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar uploadé avec succès',
-    type: AvatarResponseDto
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar uploadé avec succès' },
+        data: { $ref: '#/components/schemas/AvatarResponseDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -370,7 +449,14 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Utilisateur supprimé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur supprimé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -408,7 +494,14 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar supprimé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar supprimé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 403, 
@@ -477,7 +570,18 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Résultats de recherche récupérés avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Recherche effectuée avec succès' },
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/UserProfileDto' }
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 403, 
