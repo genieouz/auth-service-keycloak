@@ -278,9 +278,8 @@ export class AuthController {
                 isUser: { type: 'boolean', example: false }
               },
               required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
-            }
-            required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
           },
+          required: ['session', 'user', 'permissions']
           required: ['session', 'user', 'permissions']
         }
       },
@@ -395,6 +394,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
+    summary: 'Demander la réinitialisation du mot de passe',
             required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
     description: 'Envoie un code OTP pour réinitialiser le mot de passe'
   })
@@ -412,7 +412,7 @@ export class AuthController {
           properties: {
             required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
           }
-        }
+        required: ['success', 'message', 'data']
       }
     }
   })
