@@ -1,10 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { KeycloakService } from '../keycloak/keycloak.service';
 import { StorageService, UploadResult } from '../storage/storage.service';
+import { PermissionsService } from '../permissions/permissions.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { KeycloakUser } from '../common/interfaces/keycloak.interface';
-import { UserProfileDto } from '../common/dto/response.dto';
+import { UserProfileDto, PermissionsDto } from '../common/dto/response.dto';
 import { UserMapperUtil } from '../common/utils/user-mapper.util';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class UsersService {
   constructor(
     private readonly keycloakService: KeycloakService,
     private readonly storageService: StorageService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   /**
@@ -276,6 +278,81 @@ export class UsersService {
    */
   async getAvatarUrl(fileName: string): Promise<string> {
     return await this.storageService.getAvatarUrl(fileName);
+  }
+
+  /**
+   * Récupérer les permissions complètes d'un utilisateur
+   */
+  async getUserPermissions(userId: string): Promise<{
+    effectivePermissions: string[];
+    rolePermissions: string[];
+    directPermissions: string[];
+    roles: string[];
+    // Permissions calculées pour la compatibilité
+    canManageUsers: boolean;
+    canViewUsers: boolean;
+    isAdmin: boolean;
+    isModerator: boolean;
+    isUser: boolean;
+  }> {
+    try {
+      // Récupérer toutes les permissions de l'utilisateur
+      const userPermissions = await this.permissionsService.getAllUserPermissions(userId);
+      
+      // Récupérer les rôles de l'utilisateur
+      const userRoles = await this.keycloakService.getUserRoles(userId);
+      const roleNames = userRoles.map(role => role.name);
+      
+      // Calculer les permissions par rôles
+      const rolePermissions: string[] = [];
+      for (const role of userRoles) {
+        const rolePerms = role.attributes?.permissions || [];
+        rolePermissions.push(...rolePerms);
+      }
+      
+      // Récupérer les permissions directes
+      const user = await this.keycloakService.getUserById(userId);
+      const directPermissions = user.attributes?.directPermissions || [];
+      
+      // Permissions effectives (toutes les permissions uniques)
+      const effectivePermissions = [...new Set([...rolePermissions, ...directPermissions])];
+      
+      // Calculer les permissions héritées pour la compatibilité
+      const canManageUsers = roleNames.includes('admin') || roleNames.includes('super_admin') || 
+                            effectivePermissions.includes('users:manage');
+      const canViewUsers = canManageUsers || roleNames.includes('moderator') || 
+                          effectivePermissions.includes('users:read');
+      const isAdmin = roleNames.includes('admin') || roleNames.includes('super_admin');
+      const isModerator = roleNames.includes('moderator');
+      const isUser = roleNames.includes('user') || roleNames.length === 0;
+      
+      return {
+        effectivePermissions,
+        rolePermissions: [...new Set(rolePermissions)],
+        directPermissions,
+        roles: roleNames,
+        canManageUsers,
+        canViewUsers,
+        isAdmin,
+        isModerator,
+        isUser,
+      };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération des permissions de l'utilisateur ${userId}`, error);
+      
+      // Fallback en cas d'erreur
+      return {
+        effectivePermissions: [],
+        rolePermissions: [],
+        directPermissions: [],
+        roles: [],
+        canManageUsers: false,
+        canViewUsers: false,
+        isAdmin: false,
+        isModerator: false,
+        isUser: true,
+      };
+    }
   }
 
 

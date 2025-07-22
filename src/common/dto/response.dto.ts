@@ -137,6 +137,18 @@ export class UserProfileDto {
 }
 
 export class PermissionsDto {
+  @ApiProperty({ description: 'Toutes les permissions effectives de l\'utilisateur', type: [String] })
+  effectivePermissions: string[];
+
+  @ApiProperty({ description: 'Permissions héritées des rôles', type: [String] })
+  rolePermissions: string[];
+
+  @ApiProperty({ description: 'Permissions assignées directement', type: [String] })
+  directPermissions: string[];
+
+  @ApiProperty({ description: 'Rôles de l\'utilisateur', type: [String] })
+  roles: string[];
+
   @ApiProperty({ description: 'Peut gérer les utilisateurs' })
   canManageUsers: boolean;
 
