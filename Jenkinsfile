@@ -50,7 +50,7 @@ dockerBuild([
         gitUrl: 'https://gitlab.com/senum1/charts/services.git',
         gitBranch: 'main',
         gitCredentialsId: 'gitlab-cred-eyone',
-        chartPath: 'production',              // Folder containing values.yaml
+        chartPath: 'pre-production',              // Folder containing values.yaml
         imageTagPath: 'image.tag',             // Path in YAML to update
         valuesFile: 'values-senegal-service-auth-api.yaml'              // Values file name (optional, defaults to values.yaml)
     ],
