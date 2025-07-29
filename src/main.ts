@@ -87,6 +87,8 @@ async function bootstrap() {
   }
 
   const port = process.env.PORT || 3001;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
   await app.listen(port);
   
   console.log(`🚀 Service d'authentification sécurisé démarré sur le port ${port}`);
