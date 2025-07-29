@@ -60,6 +60,7 @@ export class KeycloakService {
       const tokenData: KeycloakTokenResponse = response.data;
       return tokenData.access_token;
     } catch (error) {
+      console.log(error)
       this.logger.error('Erreur lors de l\'obtention du token admin', error.response?.data);
       throw new UnauthorizedException('Impossible d\'obtenir le token d\'accès admin');
     }

@@ -72,7 +72,66 @@ export class AuthController {
   @ApiResponse({ 
     status: 201, 
     description: 'Utilisateur créé avec succès',
-    type: ApiResponseDto
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur créé et connecté avec succès' },
+        data: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+            session: {
+              type: 'object',
+              properties: {
+                access_token: { type: 'string', example: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJrZXlJZCJ9...' },
+                token_type: { type: 'string', example: 'Bearer' },
+                expires_in: { type: 'number', example: 3600 },
+                refresh_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJyZWZyZXNoS2V5In0...' },
+                scope: { type: 'string', example: 'openid profile email offline_access' },
+                issuedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
+                expiresAt: { type: 'string', format: 'date-time', example: '2024-01-15T11:30:00.000Z' },
+                remainingTime: { type: 'number', example: 3540 },
+                isExpiringSoon: { type: 'boolean', example: false },
+                audience: { type: 'array', items: { type: 'string' }, example: ['account', 'senegalservices_client'] }
+              },
+              required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+                username: { type: 'string', example: 'amadou.diallo@example.com' },
+                email: { type: 'string', example: 'amadou.diallo@example.com' },
+                firstName: { type: 'string', example: 'Amadou' },
+                lastName: { type: 'string', example: 'Diallo' },
+                enabled: { type: 'boolean', example: true },
+                emailVerified: { type: 'boolean', example: true },
+                roles: { type: 'array', items: { type: 'string' }, example: ['user', 'gestionnaire_documents'] },
+                clientRoles: { type: 'array', items: { type: 'string' }, example: ['app_user'] },
+                registrationDate: { type: 'string', format: 'date-time', example: '2024-01-10T08:00:00.000Z' }
+              },
+              required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
+            },
+            permissions: {
+              type: 'object',
+              properties: {
+                effectivePermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create', 'documents:read'] },
+                rolePermissions: { type: 'array', items: { type: 'string' }, example: ['documents:read'] },
+                directPermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create'] },
+                roles: { type: 'array', items: { type: 'string' }, example: ['default-roles-senegal services', 'admin'] },
+                canManageUsers: { type: 'boolean', example: true },
+                canViewUsers: { type: 'boolean', example: true },
+                isAdmin: { type: 'boolean', example: true },
+                isModerator: { type: 'boolean', example: false },
+                isUser: { type: 'boolean', example: false }
+              },
+              required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
+            }
+          }
+        }
+      }
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -165,7 +224,67 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Connexion réussie',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Connexion réussie' },
+        data: {
+          type: 'object',
+          properties: {
+            session: {
+              type: 'object',
+              properties: {
+                access_token: { type: 'string', example: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJrZXlJZCJ9...' },
+                token_type: { type: 'string', example: 'Bearer' },
+                expires_in: { type: 'number', example: 3600 },
+                refresh_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJyZWZyZXNoS2V5In0...' },
+                scope: { type: 'string', example: 'openid profile email offline_access' },
+                issuedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
+                expiresAt: { type: 'string', format: 'date-time', example: '2024-01-15T11:30:00.000Z' },
+                remainingTime: { type: 'number', example: 3540 },
+                isExpiringSoon: { type: 'boolean', example: false },
+                audience: { type: 'array', items: { type: 'string' }, example: ['account', 'senegalservices_client'] }
+              },
+              required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
+            },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+                username: { type: 'string', example: 'amadou.diallo@example.com' },
+                email: { type: 'string', example: 'amadou.diallo@example.com' },
+                firstName: { type: 'string', example: 'Amadou' },
+                lastName: { type: 'string', example: 'Diallo' },
+                enabled: { type: 'boolean', example: true },
+                emailVerified: { type: 'boolean', example: true },
+                roles: { type: 'array', items: { type: 'string' }, example: ['user', 'gestionnaire_documents'] },
+                clientRoles: { type: 'array', items: { type: 'string' }, example: ['app_user'] },
+                registrationDate: { type: 'string', format: 'date-time', example: '2024-01-10T08:00:00.000Z' }
+              },
+              required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
+            },
+            permissions: {
+              type: 'object',
+              properties: {
+                effectivePermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create', 'documents:read'] },
+                rolePermissions: { type: 'array', items: { type: 'string' }, example: ['documents:read'] },
+                directPermissions: { type: 'array', items: { type: 'string' }, example: ['users:read', 'users:create'] },
+                roles: { type: 'array', items: { type: 'string' }, example: ['default-roles-senegal services', 'admin'] },
+                canManageUsers: { type: 'boolean', example: true },
+                canViewUsers: { type: 'boolean', example: true },
+                isAdmin: { type: 'boolean', example: true },
+                isModerator: { type: 'boolean', example: false },
+                isUser: { type: 'boolean', example: false }
+              },
+              required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
+            }
+          },
+          required: ['session', 'user', 'permissions']
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -204,7 +323,15 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Token rafraîchi avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Token rafraîchi avec succès' },
+        data: { $ref: '#/components/schemas/SessionResponseDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 401, 
@@ -233,7 +360,14 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Mot de passe changé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Mot de passe changé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -260,14 +394,25 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
-    summary: 'Demander la réinitialisation du mot de passe',
     description: 'Envoie un code OTP pour réinitialiser le mot de passe'
   })
   @ApiBody({ type: ForgotPasswordDto })
   @ApiResponse({ 
     status: 200, 
     description: 'Code de réinitialisation envoyé',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Code de réinitialisation envoyé par email' },
+        data: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', example: 'Code de réinitialisation envoyé avec succès' }
+          }
+        }
+      }
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -300,7 +445,14 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Mot de passe réinitialisé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Mot de passe réinitialisé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -327,7 +479,14 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Déconnexion réussie',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Déconnexion réussie' }
+      },
+      required: ['success', 'message']
+    }
   })
   async logout(@CurrentUser() user: any) {
     try {

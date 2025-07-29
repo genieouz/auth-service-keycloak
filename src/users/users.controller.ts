@@ -56,7 +56,22 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Liste des utilisateurs récupérée avec succès',
-    type: PaginatedResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateurs récupérés avec succès' },
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/UserProfileDto' }
+        },
+        total: { type: 'number', example: 150 },
+        page: { type: 'number', example: 0 },
+        limit: { type: 'number', example: 20 },
+        totalPages: { type: 'number', example: 8 }
+      },
+      required: ['success', 'message', 'data', 'total', 'page', 'limit', 'totalPages']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -87,12 +102,108 @@ export class UsersController {
   @Get('me')
   @ApiOperation({ 
     summary: 'Récupérer son profil utilisateur',
-    description: 'Récupère les informations du profil de l\'utilisateur connecté'
+    description: 'Récupère les informations du profil de l\'utilisateur connecté avec ses permissions'
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Profil utilisateur récupéré avec succès',
-    type: ApiResponseDto 
+    description: 'Profil utilisateur et permissions récupérés avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Profil et permissions récupérés avec succès' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '4c2cd50b-6be8-4c72-b306-353987c94100' },
+            username: { type: 'string', example: 'genieouzog+2@gmail.com' },
+            email: { type: 'string', example: 'genieouzog+2@gmail.com' },
+            firstName: { type: 'string', example: 'Amadou N.' },
+            lastName: { type: 'string', example: 'Diallo' },
+            enabled: { type: 'boolean', example: true },
+            emailVerified: { type: 'boolean', example: true },
+            roles: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: ['default-roles-senegal services', 'admin']
+            },
+            clientRoles: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: []
+            },
+            registrationDate: { type: 'string', format: 'date-time', example: '2025-07-22T18:56:27.806Z' },
+            phone: { type: 'string', example: '+221771234567' },
+            birthDate: { type: 'string', format: 'date', example: '1990-05-15' },
+            gender: { type: 'string', enum: ['M', 'F', 'Autre'], example: 'M' },
+            address: { type: 'string', example: '123 Avenue Bourguiba, Plateau' },
+            city: { type: 'string', example: 'Dakar' },
+            postalCode: { type: 'string', example: '10000' },
+            country: { type: 'string', example: 'Sénégal' },
+            profession: { type: 'string', example: 'Développeur Full Stack' },
+            acceptTerms: { type: 'boolean', example: true },
+            acceptPrivacyPolicy: { type: 'boolean', example: true },
+            acceptMarketing: { type: 'boolean', example: false },
+            accountType: { type: 'string', enum: ['email', 'phone'], example: 'email' },
+            avatarUrl: { 
+              type: 'string', 
+              example: 'https://senegalservices.minio.api.sandbox.topatoko.com/senegal-service-auth/avatars/4c2cd50b-6be8-4c72-b306-353987c94100/c94f1186-b415-411c-8f30-a48568e863da.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=cwsLWoQcHVSi7OVS%2F20250722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250722T185627Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=f2cecb80ff9c3136add48c413f18baec5f541a9550ad42006ff17ac37c00ae44',
+            },
+            customAttributes: {
+              type: 'object',
+              properties: {
+                directPermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['users:read', 'users:create']
+                }
+              },
+              additionalProperties: true,
+              example: {
+                directPermissions: ['users:read', 'users:create']
+              },
+            },
+            permissions: {
+              type: 'object',
+              properties: {
+                effectivePermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['users:read', 'users:create'],
+                  description: 'Toutes les permissions effectives de l\'utilisateur (rôles + directes)'
+                },
+                rolePermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: [],
+                  description: 'Permissions héritées des rôles'
+                },
+                directPermissions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['users:read', 'users:create'],
+                  description: 'Permissions assignées directement à l\'utilisateur'
+                },
+                roles: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['default-roles-senegal services', 'admin'],
+                  description: 'Rôles de l\'utilisateur'
+                },
+                canManageUsers: { type: 'boolean', example: true },
+                canViewUsers: { type: 'boolean', example: true },
+                isAdmin: { type: 'boolean', example: true },
+                isModerator: { type: 'boolean', example: false },
+                isUser: { type: 'boolean', example: false }
+              },
+              required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
+            }
+          },
+          required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate', 'acceptTerms', 'acceptPrivacyPolicy', 'permissions']
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 401, 
@@ -102,21 +213,15 @@ export class UsersController {
     try {
       const userProfile = await this.usersService.getUserById(user.userId);
       
-      // Calculer les permissions comme dans le login
-      const permissions = {
-        canManageUsers: userProfile.roles.includes('admin'),
-        canViewUsers: userProfile.roles.includes('admin') || userProfile.roles.includes('moderator'),
-        isAdmin: userProfile.roles.includes('admin'),
-        isModerator: userProfile.roles.includes('moderator'),
-        isUser: userProfile.roles.includes('user') || userProfile.roles.length === 0,
-      };
+      // Récupérer les permissions complètes de l'utilisateur
+      const userPermissions = await this.usersService.getUserPermissions(user.userId);
       
       return {
         success: true,
-        message: 'Profil récupéré avec succès',
+        message: 'Profil et permissions récupérés avec succès',
         data: {
           ...userProfile,
-          permissions,
+          permissions: userPermissions,
         },
       };
     } catch (error) {
@@ -134,7 +239,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Profil mis à jour avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Profil mis à jour avec succès' },
+        data: { $ref: '#/components/schemas/UserProfileDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -172,7 +285,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar uploadé avec succès',
-    type: AvatarResponseDto
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar uploadé avec succès' },
+        data: { $ref: '#/components/schemas/AvatarResponseDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -209,7 +330,14 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar supprimé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar supprimé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 401, 
@@ -242,7 +370,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Utilisateur trouvé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur trouvé avec succès' },
+        data: { $ref: '#/components/schemas/UserProfileDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -281,7 +417,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Utilisateur mis à jour avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur mis à jour avec succès' },
+        data: { $ref: '#/components/schemas/UserProfileDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -326,7 +470,15 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar uploadé avec succès',
-    type: AvatarResponseDto
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar uploadé avec succès' },
+        data: { $ref: '#/components/schemas/AvatarResponseDto' }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -376,7 +528,14 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Utilisateur supprimé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Utilisateur supprimé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -414,7 +573,14 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar supprimé avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Avatar supprimé avec succès' }
+      },
+      required: ['success', 'message']
+    }
   })
   @ApiResponse({ 
     status: 403, 
@@ -483,7 +649,18 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Résultats de recherche récupérés avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Recherche effectuée avec succès' },
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/UserProfileDto' }
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 403, 
