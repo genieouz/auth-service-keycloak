@@ -95,7 +95,7 @@ export class AuthController {
                 isExpiringSoon: { type: 'boolean', example: false },
                 audience: { type: 'array', items: { type: 'string' }, example: ['account', 'senegalservices_client'] }
               },
-              required: false
+              required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
             },
             user: {
               type: 'object',
@@ -111,7 +111,7 @@ export class AuthController {
                 clientRoles: { type: 'array', items: { type: 'string' }, example: ['app_user'] },
                 registrationDate: { type: 'string', format: 'date-time', example: '2024-01-10T08:00:00.000Z' }
               },
-              required: false
+              required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
             },
             permissions: {
               type: 'object',
@@ -126,7 +126,7 @@ export class AuthController {
                 isModerator: { type: 'boolean', example: false },
                 isUser: { type: 'boolean', example: false }
               },
-              required: false
+              required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
             }
           }
         }
@@ -279,7 +279,6 @@ export class AuthController {
               },
               required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
             }
-            required: ['access_token', 'token_type', 'expires_in', 'scope', 'issuedAt', 'expiresAt', 'remainingTime', 'isExpiringSoon', 'audience']
           },
           required: ['session', 'user', 'permissions']
         }
@@ -395,7 +394,6 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
-            required: ['id', 'username', 'firstName', 'lastName', 'enabled', 'emailVerified', 'roles', 'clientRoles', 'registrationDate']
     description: 'Envoie un code OTP pour réinitialiser le mot de passe'
   })
   @ApiBody({ type: ForgotPasswordDto })
@@ -410,7 +408,7 @@ export class AuthController {
         data: {
           type: 'object',
           properties: {
-            required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
+            message: { type: 'string', example: 'Code de réinitialisation envoyé avec succès' }
           }
         }
       }
