@@ -34,7 +34,7 @@ export class OtpService {
 
     const identifier = email || phone;
     const code = this.generateOtpCode();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 1 minute
 
     // Supprimer les anciens codes OTP pour cet identifiant
     await this.otpModel.deleteMany({ identifier });

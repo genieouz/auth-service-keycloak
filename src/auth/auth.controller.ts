@@ -278,7 +278,7 @@ export class AuthController {
                 isUser: { type: 'boolean', example: false }
               },
               required: ['effectivePermissions', 'rolePermissions', 'directPermissions', 'roles', 'canManageUsers', 'canViewUsers', 'isAdmin', 'isModerator', 'isUser']
-            }
+            },
           },
           required: ['session', 'user', 'permissions']
         }
@@ -394,6 +394,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
+    summary: 'Demander la réinitialisation du mot de passe',
     description: 'Envoie un code OTP pour réinitialiser le mot de passe'
   })
   @ApiBody({ type: ForgotPasswordDto })
@@ -410,8 +411,9 @@ export class AuthController {
           properties: {
             message: { type: 'string', example: 'Code de réinitialisation envoyé avec succès' }
           }
-        }
-      }
+        },
+      },
+      required: ['success', 'message', 'data']
     }
   })
   @ApiResponse({ 
