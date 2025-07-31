@@ -116,7 +116,7 @@ export class NotificationService {
    * Envoyer un code OTP par SMS
    */
   async sendOtpSms(phone: string, code: string): Promise<NotificationResponse> {
-    const message = `SenegalServices: Votre code de vérification est ${code}. Valide 5 min. Ne le partagez pas. "Dalal ak diam ci Guichet unique"`;
+    const message = `SenegalServices: Votre code de vérification est ${code}. Valide 1 min. Ne le partagez pas. "Dalal ak diam ci Guichet unique"`;
     
     return this.sendSms({
       to: phone,
@@ -139,7 +139,7 @@ export class NotificationService {
       <h2>Code de vérification</h2>
       <p>Votre code de vérification SenegalServices est:</p>
       <h1 style="color: #007bff; font-size: 32px; text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 8px;">${code}</h1>
-      <p><strong>Ce code expire dans 5 minutes.</strong></p>
+      <p><strong>Ce code expire dans 1 minute.</strong></p>
       <p>Utilisez ce code pour finaliser la création de votre compte et accéder à tous nos services administratifs en ligne.</p>
       <p>Si vous n'avez pas demandé ce code, ignorez ce message.</p>
       

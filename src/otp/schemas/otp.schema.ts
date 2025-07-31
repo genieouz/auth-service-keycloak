@@ -11,7 +11,7 @@ export class Otp {
   @Prop({ required: true })
   code: string;
 
-  @Prop({ required: true, index: { expires: '5m' } })
+  @Prop({ required: true, index: { expires: '1m' } })
   expiresAt: Date;
 
   @Prop({ default: false })
