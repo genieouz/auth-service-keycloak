@@ -266,13 +266,13 @@ export class AuthService {
   }> {
     // Authentifier avec Keycloak
     const tokenResponse = await this.keycloakService.authenticateUser(identifier, password);
-    
+    this.logger.log('Token response:', tokenResponse);
     // Décoder le token pour obtenir les informations utilisateur
     const decodedToken = await this.keycloakService.verifyToken(tokenResponse.access_token);
-    
+    this.logger.log('Decoded token:', decodedToken);
     // Récupérer les détails complets de l'utilisateur
     const userDetails = await this.keycloakService.getUserById(decodedToken.sub);
-    
+    this.logger.log('User details:', userDetails);
     // Construire la réponse de session
     const session: SessionResponseDto = {
       access_token: tokenResponse.access_token,

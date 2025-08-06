@@ -49,15 +49,14 @@ export class UsersService {
     totalPages: number;
   }> {
     try {
-      const { page = 0, limit = 20 } = query;
-      const first = page * limit;
+      const { page = 1, limit = 20 } = query;
+      const first = (page - 1) * limit;
       
       // Récupérer les utilisateurs et le total en parallèle pour optimiser
       const [users, total] = await Promise.all([
         this.keycloakService.getUsers(first, limit),
         this.keycloakService.getUsersCount()
       ]);
-      
       // Générer les URLs d'avatar et mapper les utilisateurs
       const usersWithRefreshedAvatars = await Promise.all(
         users.map(user => this.generateAvatarUrlIfNeeded(user))
@@ -66,12 +65,18 @@ export class UsersService {
       // Récupérer les rôles pour chaque utilisateur
       const mappedUsers = await Promise.all(
         usersWithRefreshedAvatars.map(async (user) => {
+
           try {
             const userRoles = await this.keycloakService.getUserRoles(user.id);
             const realmRoles = userRoles.map(role => role.name);
             const clientRoles: string[] = []; // À implémenter si nécessaire
             
-            return UserMapperUtil.mapKeycloakUserToProfile(user, realmRoles, clientRoles);
+            const u = UserMapperUtil.mapKeycloakUserToProfile(user, realmRoles, clientRoles);
+            
+            if (u.email == "genieouzog+teste12@gmail.com") {
+              console.log(u);
+            }
+            return u;
           } catch (error) {
             this.logger.warn(`Impossible de récupérer les rôles pour l'utilisateur ${user.id}`, error);
             // En cas d'erreur, retourner l'utilisateur sans rôles
