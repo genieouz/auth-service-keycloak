@@ -7,6 +7,8 @@ export class CreateResourceDto {
     example: 'documents',
     minLength: 2,
     maxLength: 50
+    minLength: 2,
+    maxLength: 50
   })
   @IsString()
   @IsNotEmpty({ message: 'Le nom de la ressource est obligatoire' })
@@ -15,6 +17,8 @@ export class CreateResourceDto {
   @ApiProperty({ 
     description: 'Description de la ressource', 
     example: 'Gestion des documents administratifs et commerciaux',
+    minLength: 10,
+    maxLength: 500
     minLength: 10,
     maxLength: 500
   })
@@ -26,6 +30,10 @@ export class CreateResourceDto {
     description: 'Actions possibles sur cette ressource', 
     type: 'array',
     items: { type: 'string' },
+    example: ['read', 'create', 'update', 'delete'],
+    minItems: 1,
+    maxItems: 20,
+    uniqueItems: true
     example: ['read', 'create', 'update', 'delete'],
     minItems: 1,
     maxItems: 20,
@@ -42,6 +50,8 @@ export class CreateResourceDto {
     required: false,
     enum: ['system', 'business', 'administration', 'finance', 'hr', 'custom'],
     default: 'custom'
+    enum: ['system', 'business', 'administration', 'finance', 'hr', 'custom'],
+    default: 'custom'
   })
   @IsOptional()
   @IsString()
@@ -51,6 +61,8 @@ export class CreateResourceDto {
     description: 'Portée par défaut pour les permissions générées', 
     example: 'own',
     required: false,
+    enum: ['own', 'all', 'department', 'team'],
+    nullable: true
     enum: ['own', 'all', 'department', 'team'],
     nullable: true
   })
