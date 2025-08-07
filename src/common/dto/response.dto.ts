@@ -346,6 +346,67 @@ export class PermissionsDto {
   isUser: boolean;
 }
 
+export class ResourceDefinitionDto {
+  @ApiProperty({ 
+    description: 'Identifiant unique de la ressource',
+    example: 'res_1234567890_abc123def'
+  })
+  id: string;
+
+  @ApiProperty({ 
+    description: 'Nom unique de la ressource',
+    example: 'documents'
+  })
+  name: string;
+
+  @ApiProperty({ 
+    description: 'Description de la ressource',
+    example: 'Gestion des documents administratifs et commerciaux'
+  })
+  description: string;
+
+  @ApiProperty({ 
+    description: 'Actions possibles sur cette ressource',
+    type: [String],
+    example: ['read', 'create', 'update', 'delete', 'approve']
+  })
+  actions: string[];
+
+  @ApiProperty({ 
+    description: 'Catégorie de la ressource',
+    example: 'business',
+    enum: ['system', 'business', 'administration', 'finance', 'hr', 'custom'],
+    required: false
+  })
+  category?: string;
+
+  @ApiProperty({ 
+    description: 'Portée par défaut pour les permissions générées',
+    example: 'own',
+    enum: ['own', 'all', 'department', 'team'],
+    required: false
+  })
+  defaultScope?: string;
+
+  @ApiProperty({ 
+    description: 'Indique si c\'est une ressource système',
+    example: false
+  })
+  isSystem: boolean;
+
+  @ApiProperty({ 
+    description: 'Date de création de la ressource',
+    example: '2025-01-15T10:30:00.000Z'
+  })
+  createdAt: string;
+
+  @ApiProperty({ 
+    description: 'Date de dernière mise à jour',
+    example: '2025-01-15T11:45:00.000Z'
+  })
+  updatedAt: string;
+}
+
 export class VerifyOtpResponseDto extends ApiResponseDto<any> {
   @ApiProperty({ description: 'Identifiant de l\'utilisateur créé' })
   userId: string;
