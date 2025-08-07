@@ -102,6 +102,58 @@ export class PermissionsService implements OnModuleInit {
   }
 
   /**
+   * Créer une permission (méthode publique pour être appelée par ResourcesService)
+   */
+  async createPermission(createPermissionDto: CreatePermissionDto): Promise<PermissionDefinition> {
+    try {
+      // Vérifier si la permission existe déjà
+      if (this.permissions.has(createPermissionDto.name)) {
+        throw new ConflictException(`La permission '${createPermissionDto.name}' existe déjà`);
+      }
+
+      // Valider le format de la permission
+      this.validatePermissionFormat(createPermissionDto.name);
+
+      // Créer la permission dans MongoDB
+      const permissionDoc = new this.permissionModel({
+        name: createPermissionDto.name,
+        description: createPermissionDto.description,
+        resource: createPermissionDto.resource,
+        action: createPermissionDto.action,
+        scope: createPermissionDto.scope,
+        category: createPermissionDto.category || 'custom',
+        isSystem: false,
+        customId: this.generatePermissionId(),
+      });
+
+      const savedPermission = await permissionDoc.save();
+
+      const permission: PermissionDefinition = {
+        id: savedPermission.customId,
+        name: createPermissionDto.name,
+        description: createPermissionDto.description,
+        resource: createPermissionDto.resource,
+        action: createPermissionDto.action,
+        scope: createPermissionDto.scope,
+        category: createPermissionDto.category || 'custom',
+        createdAt: (savedPermission as any).createdAt || new Date(),
+        updatedAt: (savedPermission as any).updatedAt || (savedPermission as any).createdAt || new Date(),
+      };
+
+      this.permissions.set(permission.name, permission);
+      
+      this.logger.log(`Permission créée: ${permission.name}`);
+      
+      return permission;
+    } catch (error) {
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Erreur lors de la création de la permission', error);
+      throw new BadRequestException('Impossible de créer la permission');
+    }
+  }
+  /**
    * Mettre à jour une permission
    */
   async updatePermission(id: string, updatePermissionDto: UpdatePermissionDto): Promise<PermissionDefinition> {
