@@ -51,7 +51,28 @@ export class PermissionsController {
   @ApiResponse({ 
     status: 201, 
     description: 'Permission créée avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Permission créée avec succès' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+            name: { type: 'string', example: 'documents:read' },
+            description: { type: 'string', example: 'Permet de lire les documents' },
+            resource: { type: 'string', example: 'documents' },
+            action: { type: 'string', example: 'read' },
+            scope: { type: 'string', example: 'own', nullable: true },
+            category: { type: 'string', example: 'system', nullable: true },
+            createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
+            updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' }
+          }
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -97,7 +118,55 @@ export class PermissionsController {
   @ApiResponse({ 
     status: 200, 
     description: 'Liste des permissions récupérée avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Permissions récupérées avec succès' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+              name: { type: 'string', example: 'documents:read' },
+              description: { type: 'string', example: 'Permet de lire les documents' },
+              resource: { type: 'string', example: 'documents' },
+              action: { type: 'string', example: 'read' },
+              scope: { type: 'string', example: 'own', nullable: true },
+              category: { type: 'string', example: 'system', nullable: true },
+              createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
+              updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' }
+            }
+          },
+          example: [
+            {
+              id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+              name: 'documents:read',
+              description: 'Permet de lire les documents',
+              resource: 'documents',
+              action: 'read',
+              scope: 'own',
+              category: 'system',
+              createdAt: '2025-01-15T10:30:00.000Z',
+              updatedAt: '2025-01-15T10:30:00.000Z'
+            },
+            {
+              id: 'b2c3d4e5-f6g7-8901-bcde-f23456789012',
+              name: 'users:create',
+              description: 'Permet de créer des utilisateurs',
+              resource: 'users',
+              action: 'create',
+              scope: null,
+              category: 'admin',
+              createdAt: '2025-01-15T10:30:00.000Z',
+              updatedAt: '2025-01-15T10:30:00.000Z'
+            }
+          ]
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 403, 
@@ -134,7 +203,28 @@ export class PermissionsController {
   @ApiResponse({ 
     status: 200, 
     description: 'Permission trouvée avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Permission trouvée avec succès' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+            name: { type: 'string', example: 'documents:read' },
+            description: { type: 'string', example: 'Permet de lire les documents' },
+            resource: { type: 'string', example: 'documents' },
+            action: { type: 'string', example: 'read' },
+            scope: { type: 'string', example: 'own', nullable: true },
+            category: { type: 'string', example: 'system', nullable: true },
+            createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
+            updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' }
+          }
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -272,7 +362,27 @@ export class PermissionsController {
   @ApiResponse({ 
     status: 200, 
     description: 'Permissions assignées avec succès',
-    type: ApiResponseDto 
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Permissions assignées avec succès' },
+        data: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+            assignedPermissions: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['documents:read', 'documents:write', 'users:read']
+            },
+            assignedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
+            assignedBy: { type: 'string', example: 'admin@example.com' }
+          }
+        }
+      },
+      required: ['success', 'message', 'data']
+    }
   })
   @ApiResponse({ 
     status: 400, 
