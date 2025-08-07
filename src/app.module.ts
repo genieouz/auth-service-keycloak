@@ -12,6 +12,7 @@ import { StorageModule } from "./storage/storage.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesModule } from "./roles/roles.module";
 import { PermissionsModule } from "./permissions/permissions.module";
+import { ResourcesModule } from "./resources/resources.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { PermissionsModule } from "./permissions/permissions.module";
     StorageModule,
     RolesModule,
     PermissionsModule,
+    ResourcesModule,
   ],
   providers: [
     {

@@ -44,8 +44,8 @@ export class PermissionsController {
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
-    summary: 'Créer une nouvelle permission',
-    description: 'Crée une nouvelle permission personnalisée dans le système'
+    summary: 'Créer une nouvelle permission individuelle',
+    description: 'Crée une nouvelle permission personnalisée individuelle dans le système. Pour créer une ressource complète avec ses actions, utilisez le module Resources.'
   })
   @ApiBody({ type: CreatePermissionDto })
   @ApiResponse({ 
