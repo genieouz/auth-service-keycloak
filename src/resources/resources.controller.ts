@@ -77,32 +77,6 @@ export class ResourcesController {
       },
       required: ['success', 'message', 'data']
     }
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressource créée avec succès' },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'res_1234567890_abc123def' },
-            name: { type: 'string', example: 'documents' },
-            description: { type: 'string', example: 'Gestion des documents administratifs et commerciaux' },
-            actions: { 
-              type: 'array', 
-              items: { type: 'string' },
-              example: ['read', 'create', 'update', 'delete']
-            },
-            category: { type: 'string', example: 'business' },
-            defaultScope: { type: 'string', example: 'own', nullable: true },
-            isSystem: { type: 'boolean', example: false },
-            createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
-            updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' }
-          },
-          required: ['id', 'name', 'description', 'actions', 'isSystem', 'createdAt', 'updatedAt']
-        }
-      },
-      required: ['success', 'message', 'data']
-    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -149,58 +123,6 @@ export class ResourcesController {
     status: 200, 
     description: 'Liste des ressources récupérée avec succès',
     schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressources récupérées avec succès' },
-        data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'res_1234567890_abc123def' },
-              name: { type: 'string', example: 'documents' },
-              description: { type: 'string', example: 'Gestion des documents administratifs' },
-              actions: { 
-                type: 'array', 
-                items: { type: 'string' },
-                example: ['read', 'create', 'update', 'delete']
-              },
-              category: { type: 'string', example: 'business' },
-              defaultScope: { type: 'string', example: 'own', nullable: true },
-              isSystem: { type: 'boolean', example: false },
-              createdAt: { type: 'string', format: 'date-time' },
-              updatedAt: { type: 'string', format: 'date-time' }
-            }
-          },
-          example: [
-            {
-              id: 'res_1234567890_abc123def',
-              name: 'documents',
-              description: 'Gestion des documents administratifs',
-              actions: ['read', 'create', 'update', 'delete'],
-              category: 'business',
-              defaultScope: 'own',
-              isSystem: false,
-              createdAt: '2025-01-15T10:30:00.000Z',
-              updatedAt: '2025-01-15T10:30:00.000Z'
-            },
-            {
-              id: 'res_0987654321_def456ghi',
-              name: 'users',
-              description: 'Gestion des utilisateurs du système',
-              actions: ['read', 'create', 'update', 'delete', 'manage'],
-              category: 'system',
-              defaultScope: null,
-              isSystem: true,
-              createdAt: '2025-01-15T09:00:00.000Z',
-              updatedAt: '2025-01-15T09:00:00.000Z'
-            }
-          ]
-        }
-      },
-      required: ['success', 'message', 'data']
-    }
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
@@ -316,32 +238,6 @@ export class ResourcesController {
       },
       required: ['success', 'message', 'data']
     }
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressource trouvée avec succès' },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'res_1234567890_abc123def' },
-            name: { type: 'string', example: 'documents' },
-            description: { type: 'string', example: 'Gestion des documents administratifs et commerciaux' },
-            actions: { 
-              type: 'array', 
-              items: { type: 'string' },
-              example: ['read', 'create', 'update', 'delete', 'approve']
-            },
-            category: { type: 'string', example: 'business' },
-            defaultScope: { type: 'string', example: 'own', nullable: true },
-            isSystem: { type: 'boolean', example: false },
-            createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
-            updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' }
-          },
-          required: ['id', 'name', 'description', 'actions', 'isSystem', 'createdAt', 'updatedAt']
-        }
-      },
-      required: ['success', 'message', 'data']
-    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -388,32 +284,6 @@ export class ResourcesController {
     status: 200, 
     description: 'Ressource mise à jour avec succès',
     schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressource mise à jour avec succès' },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'res_1234567890_abc123def' },
-            name: { type: 'string', example: 'documents' },
-            description: { type: 'string', example: 'Gestion des documents administratifs et commerciaux mise à jour' },
-            actions: { 
-              type: 'array', 
-              items: { type: 'string' },
-              example: ['read', 'create', 'update', 'delete', 'approve', 'publish']
-            },
-            category: { type: 'string', example: 'business' },
-            defaultScope: { type: 'string', example: 'all', nullable: true },
-            isSystem: { type: 'boolean', example: false },
-            createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
-            updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T11:45:00.000Z' }
-          },
-          required: ['id', 'name', 'description', 'actions', 'isSystem', 'createdAt', 'updatedAt']
-        }
-      },
-      required: ['success', 'message', 'data']
-    }
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
@@ -493,13 +363,6 @@ export class ResourcesController {
       },
       required: ['success', 'message']
     }
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressource \'documents\' supprimée avec succès' }
-      },
-      required: ['success', 'message']
-    }
   })
   @ApiResponse({ 
     status: 400, 
@@ -570,32 +433,6 @@ export class ResourcesController {
       },
       required: ['success', 'message', 'data']
     }
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressource trouvée avec succès' },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'res_1234567890_abc123def' },
-            name: { type: 'string', example: 'documents' },
-            description: { type: 'string', example: 'Gestion des documents administratifs et commerciaux' },
-            actions: { 
-              type: 'array', 
-              items: { type: 'string' },
-              example: ['read', 'create', 'update', 'delete', 'approve']
-            },
-            category: { type: 'string', example: 'business' },
-            defaultScope: { type: 'string', example: 'own', nullable: true },
-            isSystem: { type: 'boolean', example: false },
-            createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
-            updatedAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' }
-          },
-          required: ['id', 'name', 'description', 'actions', 'isSystem', 'createdAt', 'updatedAt']
-        }
-      },
-      required: ['success', 'message', 'data']
-    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -637,13 +474,6 @@ export class ResourcesController {
     status: 200, 
     description: 'Ressources système initialisées avec succès',
     schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Ressources système initialisées avec succès' }
-      },
-      required: ['success', 'message']
-    }
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
