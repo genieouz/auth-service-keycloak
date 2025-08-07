@@ -5,7 +5,9 @@ export class UpdateResourceDto {
   @ApiProperty({ 
     description: 'Description de la ressource', 
     example: 'Gestion des documents administratifs et commerciaux mise à jour',
-    required: false 
+    required: false,
+    minLength: 10,
+    maxLength: 500
   })
   @IsOptional()
   @IsString()
@@ -13,9 +15,13 @@ export class UpdateResourceDto {
 
   @ApiProperty({ 
     description: 'Actions possibles sur cette ressource', 
-    example: ['read', 'create', 'update', 'delete', 'approve'],
     required: false,
-    type: [String]
+    type: 'array',
+    items: { type: 'string' },
+    example: ['read', 'create', 'update', 'delete', 'approve'],
+    minItems: 1,
+    maxItems: 20,
+    uniqueItems: true
   })
   @IsOptional()
   @IsArray()
@@ -25,7 +31,8 @@ export class UpdateResourceDto {
   @ApiProperty({ 
     description: 'Catégorie de la ressource', 
     example: 'business',
-    required: false 
+    required: false,
+    enum: ['system', 'business', 'administration', 'finance', 'hr', 'custom']
   })
   @IsOptional()
   @IsString()
@@ -34,7 +41,9 @@ export class UpdateResourceDto {
   @ApiProperty({ 
     description: 'Portée par défaut pour les permissions générées', 
     example: 'all',
-    required: false 
+    required: false,
+    enum: ['own', 'all', 'department', 'team'],
+    nullable: true
   })
   @IsOptional()
   @IsString()

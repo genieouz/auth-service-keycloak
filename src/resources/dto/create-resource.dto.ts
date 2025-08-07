@@ -4,7 +4,9 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateResourceDto {
   @ApiProperty({ 
     description: 'Nom unique de la ressource', 
-    example: 'documents' 
+    example: 'documents',
+    minLength: 2,
+    maxLength: 50
   })
   @IsString()
   @IsNotEmpty({ message: 'Le nom de la ressource est obligatoire' })
@@ -12,7 +14,9 @@ export class CreateResourceDto {
 
   @ApiProperty({ 
     description: 'Description de la ressource', 
-    example: 'Gestion des documents administratifs et commerciaux' 
+    example: 'Gestion des documents administratifs et commerciaux',
+    minLength: 10,
+    maxLength: 500
   })
   @IsString()
   @IsNotEmpty({ message: 'La description de la ressource est obligatoire' })
@@ -20,8 +24,12 @@ export class CreateResourceDto {
 
   @ApiProperty({ 
     description: 'Actions possibles sur cette ressource', 
+    type: 'array',
+    items: { type: 'string' },
     example: ['read', 'create', 'update', 'delete'],
-    type: [String]
+    minItems: 1,
+    maxItems: 20,
+    uniqueItems: true
   })
   @IsArray()
   @ArrayNotEmpty({ message: 'Au moins une action doit être définie' })
@@ -30,8 +38,10 @@ export class CreateResourceDto {
 
   @ApiProperty({ 
     description: 'Catégorie de la ressource', 
-    example: 'administration',
-    required: false 
+    example: 'business',
+    required: false,
+    enum: ['system', 'business', 'administration', 'finance', 'hr', 'custom'],
+    default: 'custom'
   })
   @IsOptional()
   @IsString()
@@ -40,7 +50,9 @@ export class CreateResourceDto {
   @ApiProperty({ 
     description: 'Portée par défaut pour les permissions générées', 
     example: 'own',
-    required: false 
+    required: false,
+    enum: ['own', 'all', 'department', 'team'],
+    nullable: true
   })
   @IsOptional()
   @IsString()
